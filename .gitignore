@@ -37,6 +37,9 @@ CLAUDE.local.md
 .serena/
 .claude/settings.local.json
 
+# BMAD scope session file (parallel-safe, session-specific)
+.bmad-scope
+
 z*/
 
 _bmad

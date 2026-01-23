@@ -5,6 +5,7 @@ const chalk = require('chalk');
 const yaml = require('yaml');
 const { BaseIdeSetup } = require('./_base-ide');
 const { WorkflowCommandGenerator } = require('./shared/workflow-command-generator');
+const { ScopeCommandGenerator } = require('./shared/scope-command-generator');
 const { TaskToolCommandGenerator } = require('./shared/task-tool-command-generator');
 const { AgentCommandGenerator } = require('./shared/agent-command-generator');
 
@@ -67,6 +68,11 @@ class OpenCodeSetup extends BaseIdeSetup {
 
     // Install task and tool commands with flat naming
     const { tasks, tools } = await this.generateFlatTaskToolCommands(bmadDir, commandsBaseDir);
+
+    // Generate scope command for parallel-safe scope management
+    const scopeGen = new ScopeCommandGenerator(this.bmadFolderName);
+    const scopeContent = await scopeGen.generateCommandContent();
+    await this.writeFile(path.join(commandsBaseDir, 'bmad-scope.md'), scopeContent);
 
     console.log(chalk.green(`✓ ${this.name} configured:`));
     console.log(chalk.dim(`  - ${agentCount} agents installed to .opencode/agent/`));

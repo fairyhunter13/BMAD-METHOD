@@ -2,6 +2,7 @@ const path = require('node:path');
 const { BaseIdeSetup } = require('./_base-ide');
 const chalk = require('chalk');
 const { AgentCommandGenerator } = require('./shared/agent-command-generator');
+const { ScopeCommandGenerator } = require('./shared/scope-command-generator');
 
 /**
  * KiloCode IDE setup handler
@@ -59,6 +60,25 @@ class KiloSetup extends BaseIdeSetup {
       const modeEntry = await this.createModeEntry(artifact, projectDir);
 
       newModesContent += modeEntry;
+      addedCount++;
+    }
+
+    // Generate scope mode for parallel-safe scope management
+    if (!existingModes.includes('bmad-scope')) {
+      const scopeGen = new ScopeCommandGenerator(this.bmadFolderName);
+      const scopeContent = await scopeGen.generateCommandContent();
+      const scopeModeEntry = ` - slug: bmad-scope
+   name: '🎯 BMAD Scope'
+   roleDefinition: You are a scope management assistant that helps users set and check scope for parallel-safe execution.
+   whenToUse: Use when you need to set or check the active scope for parallel development
+   customInstructions: |
+    ${scopeContent.split('\n').join('\n    ')}
+   groups:
+    - read
+    - edit
+    - command
+`;
+      newModesContent += scopeModeEntry;
       addedCount++;
     }
 

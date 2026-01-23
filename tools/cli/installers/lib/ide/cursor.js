@@ -4,6 +4,7 @@ const chalk = require('chalk');
 const { AgentCommandGenerator } = require('./shared/agent-command-generator');
 const { WorkflowCommandGenerator } = require('./shared/workflow-command-generator');
 const { TaskToolCommandGenerator } = require('./shared/task-tool-command-generator');
+const { ScopeCommandGenerator } = require('./shared/scope-command-generator');
 const { customAgentColonName } = require('./shared/path-utils');
 
 /**
@@ -82,6 +83,10 @@ class CursorSetup extends BaseIdeSetup {
     // Generate task and tool commands from manifests (if they exist)
     const taskToolGen = new TaskToolCommandGenerator();
     const taskToolResult = await taskToolGen.generateColonTaskToolCommands(projectDir, bmadDir, commandsDir);
+
+    // Generate scope command for parallel-safe scope management
+    const scopeGen = new ScopeCommandGenerator(this.bmadFolderName);
+    await scopeGen.writeScopeCommand(commandsDir);
 
     console.log(chalk.green(`✓ ${this.name} configured:`));
     console.log(chalk.dim(`  - ${agentCount} agents installed`));

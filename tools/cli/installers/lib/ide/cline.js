@@ -5,6 +5,7 @@ const { BaseIdeSetup } = require('./_base-ide');
 const { WorkflowCommandGenerator } = require('./shared/workflow-command-generator');
 const { AgentCommandGenerator } = require('./shared/agent-command-generator');
 const { TaskToolCommandGenerator } = require('./shared/task-tool-command-generator');
+const { ScopeCommandGenerator } = require('./shared/scope-command-generator');
 const { getAgentsFromBmad, getTasksFromBmad } = require('./shared/bmad-artifacts');
 const { toDashPath, customAgentDashName } = require('./shared/path-utils');
 
@@ -42,6 +43,11 @@ class ClineSetup extends BaseIdeSetup {
 
     // Write flattened files
     const written = await this.flattenAndWriteArtifacts(artifacts, workflowsDir);
+
+    // Generate scope command for parallel-safe scope management
+    const scopeGen = new ScopeCommandGenerator(this.bmadFolderName);
+    const scopeContent = await scopeGen.generateCommandContent();
+    await fs.writeFile(path.join(workflowsDir, 'bmad-scope.md'), scopeContent);
 
     console.log(chalk.green(`✓ ${this.name} configured:`));
     console.log(chalk.dim(`  - ${counts.agents} agents installed`));

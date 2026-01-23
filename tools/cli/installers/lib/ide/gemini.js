@@ -4,6 +4,7 @@ const yaml = require('yaml');
 const { BaseIdeSetup } = require('./_base-ide');
 const chalk = require('chalk');
 const { AgentCommandGenerator } = require('./shared/agent-command-generator');
+const { ScopeCommandGenerator } = require('./shared/scope-command-generator');
 const { WorkflowCommandGenerator } = require('./shared/workflow-command-generator');
 
 /**
@@ -119,6 +120,16 @@ class GeminiSetup extends BaseIdeSetup {
         console.log(chalk.green(`  ✓ Added workflow: /bmad_workflows_${artifact.module}_${workflowName}`));
       }
     }
+
+    // Generate scope command for parallel-safe scope management
+    const scopeGen = new ScopeCommandGenerator(this.bmadFolderName);
+    const scopeContent = await scopeGen.generateCommandContent();
+    const scopeToml = `description = "Set or check the active scope for parallel-safe execution"
+prompt = """
+${scopeContent}
+"""
+`;
+    await this.writeFile(path.join(commandsDir, 'bmad-scope.toml'), scopeToml);
 
     console.log(chalk.green(`✓ ${this.name} configured:`));
     console.log(chalk.dim(`  - ${agentCount} agents configured`));

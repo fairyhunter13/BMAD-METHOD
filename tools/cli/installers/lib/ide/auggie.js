@@ -4,6 +4,7 @@ const { BaseIdeSetup } = require('./_base-ide');
 const chalk = require('chalk');
 const { AgentCommandGenerator } = require('./shared/agent-command-generator');
 const { WorkflowCommandGenerator } = require('./shared/workflow-command-generator');
+const { ScopeCommandGenerator } = require('./shared/scope-command-generator');
 
 /**
  * Auggie CLI setup handler
@@ -95,6 +96,11 @@ class AuggieSetup extends BaseIdeSetup {
     }
 
     const totalInstalled = agentArtifacts.length + tasks.length + tools.length + workflows.length;
+
+    // Generate scope command for parallel-safe scope management
+    const scopeGen = new ScopeCommandGenerator(this.bmadFolderName);
+    const scopeContent = await scopeGen.generateCommandContent();
+    await this.writeFile(path.join(bmadCommandsDir, 'scope.md'), scopeContent);
 
     console.log(chalk.green(`✓ ${this.name} configured:`));
     console.log(chalk.dim(`  - ${agentArtifacts.length} agents installed`));

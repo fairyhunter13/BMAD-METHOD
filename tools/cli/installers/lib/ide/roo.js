@@ -2,6 +2,7 @@ const path = require('node:path');
 const { BaseIdeSetup } = require('./_base-ide');
 const chalk = require('chalk');
 const { AgentCommandGenerator } = require('./shared/agent-command-generator');
+const { ScopeCommandGenerator } = require('./shared/scope-command-generator');
 const { toDashPath, customAgentDashName } = require('./shared/path-utils');
 
 /**
@@ -67,6 +68,11 @@ class RooSetup extends BaseIdeSetup {
       addedCount++;
       console.log(chalk.green(`  ✓ Added command: ${commandName}`));
     }
+
+    // Generate scope command for parallel-safe scope management
+    const scopeGen = new ScopeCommandGenerator(this.bmadFolderName);
+    const scopeContent = await scopeGen.generateCommandContent();
+    await this.writeFile(path.join(rooCommandsDir, 'bmad-scope.md'), scopeContent);
 
     console.log(chalk.green(`✓ ${this.name} configured:`));
     console.log(chalk.dim(`  - ${addedCount} commands added`));

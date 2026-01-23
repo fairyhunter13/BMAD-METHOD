@@ -1,5 +1,5 @@
 ---
-title: "Workflows Reference"
+title: 'Workflows Reference'
 description: Reference documentation for BMad Method workflows
 ---
 
@@ -9,4 +9,3 @@ Reference documentation for all BMad Method workflows.
 
 - [Core Workflows](/docs/reference/workflows/core-workflows.md) — Domain-agnostic workflows available to all modules
 - [Document Project](/docs/reference/workflows/document-project.md) — Brownfield project documentation
-

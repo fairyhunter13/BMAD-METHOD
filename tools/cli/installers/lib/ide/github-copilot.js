@@ -2,6 +2,7 @@ const path = require('node:path');
 const { BaseIdeSetup } = require('./_base-ide');
 const chalk = require('chalk');
 const { AgentCommandGenerator } = require('./shared/agent-command-generator');
+const { ScopeCommandGenerator } = require('./shared/scope-command-generator');
 const prompts = require('../../../lib/prompts');
 
 /**
@@ -119,6 +120,20 @@ class GitHubCopilotSetup extends BaseIdeSetup {
 
       console.log(chalk.green(`  ✓ Created agent: bmd-custom-${artifact.module}-${artifact.name}`));
     }
+
+    // Generate scope command for parallel-safe scope management
+    const scopeGen = new ScopeCommandGenerator(this.bmadFolderName);
+    const scopeContent = await scopeGen.generateCommandContent();
+    const scopeAgentContent = `---
+description: "Set or check the active scope for parallel-safe execution"
+tools: ["search", "edit", "runCommands"]
+---
+
+# Scope Management
+
+${scopeContent}
+`;
+    await this.writeFile(path.join(agentsDir, 'bmd-scope.agent.md'), scopeAgentContent);
 
     console.log(chalk.green(`✓ ${this.name} configured:`));
     console.log(chalk.dim(`  - ${agentCount} agents created`));

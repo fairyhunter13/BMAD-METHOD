@@ -2,6 +2,7 @@ const path = require('node:path');
 const { BaseIdeSetup } = require('./_base-ide');
 const chalk = require('chalk');
 const { AgentCommandGenerator } = require('./shared/agent-command-generator');
+const { ScopeCommandGenerator } = require('./shared/scope-command-generator');
 
 /**
  * Windsurf IDE setup handler
@@ -102,6 +103,17 @@ class WindsurfSetup extends BaseIdeSetup {
       await this.writeFile(targetPath, processedContent);
       workflowCount++;
     }
+
+    // Generate scope command for parallel-safe scope management
+    const scopeGen = new ScopeCommandGenerator(this.bmadFolderName);
+    const scopeContent = await scopeGen.generateCommandContent();
+    const scopeWorkflowContent = `---
+description: scope
+auto_execution_mode: 1
+---
+
+${scopeContent}`;
+    await this.writeFile(path.join(workflowsDir, 'bmad-scope.md'), scopeWorkflowContent);
 
     console.log(chalk.green(`✓ ${this.name} configured:`));
     console.log(chalk.dim(`  - ${agentCount} agents installed`));

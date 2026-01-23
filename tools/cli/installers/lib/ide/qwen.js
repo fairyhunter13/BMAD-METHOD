@@ -4,6 +4,7 @@ const { BaseIdeSetup } = require('./_base-ide');
 const chalk = require('chalk');
 const { getAgentsFromBmad, getTasksFromBmad } = require('./shared/bmad-artifacts');
 const { AgentCommandGenerator } = require('./shared/agent-command-generator');
+const { ScopeCommandGenerator } = require('./shared/scope-command-generator');
 
 /**
  * Qwen Code setup handler
@@ -124,6 +125,16 @@ class QwenSetup extends BaseIdeSetup {
       workflowCount++;
       console.log(chalk.green(`  ✓ Added workflow: /bmad_${workflow.module}_workflows_${workflow.name}`));
     }
+
+    // Generate scope command for parallel-safe scope management
+    const scopeGen = new ScopeCommandGenerator(this.bmadFolderName);
+    const scopeContent = await scopeGen.generateCommandContent();
+    const scopeToml = `description = "Set or check the active scope for parallel-safe execution"
+prompt = """
+${scopeContent}
+"""
+`;
+    await this.writeFile(path.join(bmadCommandsDir, 'scope.toml'), scopeToml);
 
     console.log(chalk.green(`✓ ${this.name} configured:`));
     console.log(chalk.dim(`  - ${agentCount} agents configured`));

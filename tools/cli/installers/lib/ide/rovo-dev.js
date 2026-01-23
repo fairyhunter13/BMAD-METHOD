@@ -3,6 +3,7 @@ const fs = require('fs-extra');
 const chalk = require('chalk');
 const { BaseIdeSetup } = require('./_base-ide');
 const { AgentCommandGenerator } = require('./shared/agent-command-generator');
+const { ScopeCommandGenerator } = require('./shared/scope-command-generator');
 const { WorkflowCommandGenerator } = require('./shared/workflow-command-generator');
 const { TaskToolCommandGenerator } = require('./shared/task-tool-command-generator');
 
@@ -119,6 +120,11 @@ class RovoDevSetup extends BaseIdeSetup {
     // Generate and install tasks and tools
     const taskToolGen = new TaskToolCommandGenerator();
     const { tasks: taskCount, tools: toolCount } = await this.generateTaskToolReferences(bmadDir, referencesDir, taskToolGen);
+
+    // Generate scope command for parallel-safe scope management
+    const scopeGen = new ScopeCommandGenerator(this.bmadFolderName);
+    const scopeContent = await scopeGen.generateCommandContent();
+    await this.writeFile(path.join(workflowsDir, 'bmad-scope.md'), scopeContent);
 
     // Summary output
     console.log(chalk.green(`✓ ${this.name} configured:`));

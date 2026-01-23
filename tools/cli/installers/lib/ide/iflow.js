@@ -3,6 +3,7 @@ const fs = require('fs-extra');
 const { BaseIdeSetup } = require('./_base-ide');
 const chalk = require('chalk');
 const { AgentCommandGenerator } = require('./shared/agent-command-generator');
+const { ScopeCommandGenerator } = require('./shared/scope-command-generator');
 const { WorkflowCommandGenerator } = require('./shared/workflow-command-generator');
 
 /**
@@ -77,6 +78,11 @@ class IFlowSetup extends BaseIdeSetup {
         workflowCount++;
       }
     }
+
+    // Generate scope command for parallel-safe scope management
+    const scopeGen = new ScopeCommandGenerator(this.bmadFolderName);
+    const scopeContent = await scopeGen.generateCommandContent();
+    await this.writeFile(path.join(commandsDir, 'scope.md'), scopeContent);
 
     console.log(chalk.green(`✓ ${this.name} configured:`));
     console.log(chalk.dim(`  - ${agentCount} agent commands created`));

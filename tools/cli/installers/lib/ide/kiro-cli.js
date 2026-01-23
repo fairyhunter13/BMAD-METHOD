@@ -3,6 +3,7 @@ const { BaseIdeSetup } = require('./_base-ide');
 const chalk = require('chalk');
 const fs = require('fs-extra');
 const yaml = require('yaml');
+const { ScopeCommandGenerator } = require('./shared/scope-command-generator');
 
 /**
  * Kiro CLI setup handler for BMad Method
@@ -51,6 +52,33 @@ class KiroCliSetup extends BaseIdeSetup {
 
     // Create BMad agents from source YAML files
     await this.createBmadAgentsFromSource(agentsDir, projectDir);
+
+    // Generate scope command for parallel-safe scope management
+    const scopeGen = new ScopeCommandGenerator(this.bmadFolderName);
+    const scopeContent = await scopeGen.generateCommandContent();
+
+    // Create scope agent JSON definition
+    const scopeAgentConfig = {
+      name: 'bmad-scope',
+      description: 'Scope management for parallel-safe execution',
+      prompt: 'file://./bmad-scope-prompt.md',
+      tools: ['*'],
+      mcpServers: {},
+      useLegacyMcpJson: true,
+      resources: [],
+    };
+    await fs.writeJson(path.join(agentsDir, 'bmad-scope.json'), scopeAgentConfig, { spaces: 2 });
+
+    // Create scope prompt file
+    const scopePrompt = `# BMAD Scope Management 🎯
+
+## Role
+You are a scope management assistant that helps users set and check scope for parallel-safe execution.
+
+## Instructions
+${scopeContent}
+`;
+    await fs.writeFile(path.join(agentsDir, 'bmad-scope-prompt.md'), scopePrompt);
 
     console.log(chalk.green(`✓ ${this.name} configured with BMad agents`));
   }

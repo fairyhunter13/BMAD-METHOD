@@ -3,6 +3,7 @@ const fs = require('fs-extra');
 const { BaseIdeSetup } = require('./_base-ide');
 const chalk = require('chalk');
 const { AgentCommandGenerator } = require('./shared/agent-command-generator');
+const { ScopeCommandGenerator } = require('./shared/scope-command-generator');
 
 /**
  * Trae IDE setup handler
@@ -88,7 +89,20 @@ class TraeSetup extends BaseIdeSetup {
       workflowCount++;
     }
 
-    const totalRules = agentCount + taskCount + toolCount + workflowCount;
+    // Generate scope command for parallel-safe scope management
+    const scopeGen = new ScopeCommandGenerator(this.bmadFolderName);
+    const scopeContent = await scopeGen.generateCommandContent();
+    const scopeRule = `# Scope Management Rule
+
+This rule is triggered when the user types \`@scope\` or \`/scope\` and manages scope for parallel-safe execution.
+
+## Scope Command
+
+${scopeContent}
+`;
+    await this.writeFile(path.join(rulesDir, 'bmad-scope.md'), scopeRule);
+
+    const totalRules = agentCount + taskCount + toolCount + workflowCount + 1;
 
     console.log(chalk.green(`✓ ${this.name} configured:`));
     console.log(chalk.dim(`  - ${agentCount} agent rules created`));

@@ -3,6 +3,7 @@ const fs = require('fs-extra');
 const { BaseIdeSetup } = require('./_base-ide');
 const chalk = require('chalk');
 const { AgentCommandGenerator } = require('./shared/agent-command-generator');
+const { ScopeCommandGenerator } = require('./shared/scope-command-generator');
 const { WorkflowCommandGenerator } = require('./shared/workflow-command-generator');
 const { TaskToolCommandGenerator } = require('./shared/task-tool-command-generator');
 const { customAgentColonName } = require('./shared/path-utils');
@@ -57,6 +58,11 @@ class CrushSetup extends BaseIdeSetup {
     // Generate task and tool commands using flat underscore naming
     const taskToolGen = new TaskToolCommandGenerator();
     const taskToolResult = await taskToolGen.generateColonTaskToolCommands(projectDir, bmadDir, commandsDir);
+
+    // Generate scope command for parallel-safe scope management
+    const scopeGen = new ScopeCommandGenerator(this.bmadFolderName);
+    const scopeContent = await scopeGen.generateCommandContent();
+    await fs.writeFile(path.join(commandsDir, 'bmad:scope.md'), scopeContent);
 
     console.log(chalk.green(`✓ ${this.name} configured:`));
     console.log(chalk.dim(`  - ${agentCount} agent commands created`));
