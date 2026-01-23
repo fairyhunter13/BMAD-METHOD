@@ -1,0 +1,775 @@
+# Workspace Profile Schema
+# Defines the structure for monorepo/workspace-level language profiles
+# Location: {project-root}/_bmad/testarch/workspace-profile.yaml
+
+version: "1.0"
+description: |
+  This schema defines the workspace-level profile for monorepos.
+  It aggregates information across multiple packages and provides
+  a unified view for cross-package test coordination.
+
+  Key differences from single-project language-profile.yaml:
+  - Contains metadata about ALL packages in the workspace
+  - Tracks language distribution across packages
+  - Defines shared test utilities and fixtures
+  - Maintains cross-package dependency graph for test ordering
+
+# =============================================================================
+# SCHEMA DEFINITION
+# =============================================================================
+
+schema:
+  # ---------------------------------------------------------------------------
+  # WORKSPACE METADATA
+  # ---------------------------------------------------------------------------
+  metadata:
+    type: object
+    description: "Information about the workspace and this profile"
+    properties:
+      workspace_name:
+        type: string
+        description: "Human-readable workspace name"
+        example: "my-company-monorepo"
+      workspace_type:
+        type: enum
+        values:
+          - pnpm
+          - npm-workspaces
+          - yarn-workspaces
+          - lerna
+          - nx
+          - turbo
+          - rush
+          - go-work
+          - cargo-workspace
+          - gradle-multiproject
+          - maven-multimodule
+          - bazel
+          - pants
+          - buck2
+          - dotnet-solution
+          - custom
+        description: "Detected workspace/monorepo type"
+      workspace_root:
+        type: string
+        description: "Absolute path to workspace root"
+        example: "/home/user/projects/my-monorepo"
+      detection_source:
+        type: string
+        description: "File that identified this as a workspace"
+        example: "pnpm-workspace.yaml"
+      created_at:
+        type: datetime
+        description: "When this profile was first created"
+      updated_at:
+        type: datetime
+        description: "When this profile was last updated"
+      tea_version:
+        type: string
+        description: "Version of TEA that created this profile"
+
+  # ---------------------------------------------------------------------------
+  # PACKAGES
+  # ---------------------------------------------------------------------------
+  packages:
+    type: array
+    description: "All packages in the workspace"
+    items:
+      type: package_entry
+    properties:
+      total_count:
+        type: integer
+        description: "Total number of packages"
+      by_language:
+        type: object
+        description: "Count of packages by primary language"
+        example:
+          TypeScript: 5
+          Python: 2
+          Go: 3
+
+  package_entry:
+    type: object
+    description: "Metadata for a single package"
+    properties:
+      name:
+        type: string
+        description: "Package name (from package.json, Cargo.toml, etc.)"
+        example: "@myorg/api-client"
+      path:
+        type: string
+        description: "Path relative to workspace root"
+        example: "packages/api-client"
+      primary_language:
+        type: string
+        description: "Main language of this package"
+        example: "TypeScript"
+      profile_path:
+        type: string
+        description: "Path to package's language-profile.yaml (relative to workspace root)"
+        example: "_bmad/testarch/packages/api-client/language-profile.yaml"
+      profile_status:
+        type: enum
+        values: [generated, pending, failed, outdated]
+        description: "Status of package's language profile"
+      test_framework:
+        type: string
+        description: "Primary test framework for this package"
+        example: "vitest"
+      test_directory:
+        type: string
+        description: "Test directory relative to package root"
+        example: "src/__tests__"
+      has_tests:
+        type: boolean
+        description: "Whether the package has test files"
+      test_count:
+        type: integer
+        description: "Approximate number of test files"
+      depends_on:
+        type: array
+        items: string
+        description: "Internal workspace packages this depends on"
+        example: ["@myorg/shared-utils", "@myorg/types"]
+      tags:
+        type: array
+        items: string
+        description: "Custom tags for filtering (e.g., 'frontend', 'backend', 'library')"
+        example: ["frontend", "library"]
+
+  # ---------------------------------------------------------------------------
+  # LANGUAGE DISTRIBUTION
+  # ---------------------------------------------------------------------------
+  language_distribution:
+    type: object
+    description: "Aggregate language statistics across workspace"
+    properties:
+      primary_languages:
+        type: array
+        items: string
+        description: "Languages with 10%+ of packages"
+        example: ["TypeScript", "Go"]
+      languages:
+        type: object
+        description: "Breakdown by language"
+        properties:
+          "{language}":
+            type: object
+            properties:
+              package_count:
+                type: integer
+              packages:
+                type: array
+                items: string
+                description: "Package names"
+              test_frameworks:
+                type: array
+                items: string
+                description: "Test frameworks used for this language"
+
+  # ---------------------------------------------------------------------------
+  # SHARED TEST INFRASTRUCTURE
+  # ---------------------------------------------------------------------------
+  shared_test_infrastructure:
+    type: object
+    description: "Cross-package test utilities and fixtures"
+    properties:
+      test_utilities:
+        type: array
+        items:
+          type: object
+          properties:
+            name:
+              type: string
+              description: "Package or directory name"
+              example: "@myorg/test-utils"
+            path:
+              type: string
+              example: "packages/test-utils"
+            language:
+              type: string
+              example: "TypeScript"
+            exports:
+              type: array
+              items: string
+              description: "Key exports available to other packages"
+              example: ["createMockUser", "setupTestDb", "mockApiClient"]
+            used_by:
+              type: array
+              items: string
+              description: "Packages that import from this utility"
+
+      shared_fixtures:
+        type: array
+        items:
+          type: object
+          properties:
+            path:
+              type: string
+              example: "fixtures/sample-data"
+            type:
+              type: enum
+              values: [json, yaml, sql, binary, generated]
+            description:
+              type: string
+            used_by:
+              type: array
+              items: string
+
+      e2e_suites:
+        type: array
+        items:
+          type: object
+          properties:
+            name:
+              type: string
+              example: "Full Integration Suite"
+            path:
+              type: string
+              example: "e2e/"
+            framework:
+              type: string
+              example: "Playwright"
+            covers_packages:
+              type: array
+              items: string
+              description: "Packages tested by this E2E suite"
+
+      shared_mocks:
+        type: array
+        items:
+          type: object
+          properties:
+            path:
+              type: string
+            language:
+              type: string
+            mocks:
+              type: array
+              items: string
+              description: "Mock names or types"
+
+  # ---------------------------------------------------------------------------
+  # TEST EXECUTION CONFIGURATION
+  # ---------------------------------------------------------------------------
+  test_execution:
+    type: object
+    description: "How to run tests across the workspace"
+    properties:
+      strategy:
+        type: enum
+        values:
+          - per_package # Run tests in each package independently
+          - orchestrated # Use workspace tool (nx, turbo) for orchestration
+          - dependency_order # Run in topological order of dependencies
+          - parallel_groups # Run independent packages in parallel
+        description: "How tests should be executed across packages"
+
+      orchestrator:
+        type: object
+        description: "Workspace orchestrator configuration (if applicable)"
+        properties:
+          tool:
+            type: enum
+            values: [nx, turbo, lerna, none]
+          test_target:
+            type: string
+            description: "Target name for running tests"
+            example: "test"
+          affected_command:
+            type: string
+            description: "Command to run tests for affected packages only"
+            example: "nx affected --target=test"
+
+      parallel_config:
+        type: object
+        properties:
+          max_workers:
+            type: integer
+            description: "Max parallel test processes"
+          group_by:
+            type: enum
+            values: [language, tag, size, none]
+            description: "How to group packages for parallel execution"
+
+      dependency_graph:
+        type: object
+        description: "Test dependency relationships"
+        properties:
+          test_order:
+            type: array
+            items:
+              type: array
+              items: string
+            description: "Packages grouped by level (level 0 first, etc.)"
+            example:
+              - ["@myorg/types", "@myorg/shared-utils"] # Level 0 - no deps
+              - ["@myorg/api-client"] # Level 1 - depends on level 0
+              - ["@myorg/web-app"] # Level 2 - depends on level 1
+          critical_path:
+            type: array
+            items: string
+            description: "Packages that should be tested first (most depended upon)"
+
+  # ---------------------------------------------------------------------------
+  # CI CONFIGURATION
+  # ---------------------------------------------------------------------------
+  ci_configuration:
+    type: object
+    description: "Cross-package CI considerations"
+    properties:
+      matrix_strategy:
+        type: enum
+        values:
+          - single_job # All packages in one job
+          - per_language # Group by language
+          - per_package # Each package gets own job
+          - affected_only # Only test changed packages
+        description: "How to structure CI matrix"
+
+      shared_steps:
+        type: array
+        items:
+          type: string
+        description: "Steps that run once before any package tests"
+        example:
+          - "Install workspace dependencies"
+          - "Build shared packages"
+          - "Start test databases"
+
+      cache_keys:
+        type: object
+        description: "Cache key patterns for CI"
+        properties:
+          dependencies:
+            type: string
+            example: "deps-${{ hashFiles('pnpm-lock.yaml') }}"
+          build:
+            type: string
+            example: "build-${{ hashFiles('packages/*/src/**') }}"
+
+  # ---------------------------------------------------------------------------
+  # WORKSPACE DEFAULTS
+  # ---------------------------------------------------------------------------
+  workspace_defaults:
+    type: object
+    description: "Default values that packages inherit unless overridden"
+    properties:
+      test_framework:
+        type: string
+        description: "Default test framework for new packages"
+      coverage_threshold:
+        type: object
+        properties:
+          lines:
+            type: number
+          branches:
+            type: number
+          functions:
+            type: number
+      test_patterns:
+        type: array
+        items: string
+        description: "Default test file patterns"
+        example: ["**/*.test.ts", "**/*.spec.ts"]
+      timeout:
+        type: integer
+        description: "Default test timeout in ms"
+      characteristics:
+        type: object
+        description: "Default language characteristics (for packages of same language)"
+
+# =============================================================================
+# EXAMPLE WORKSPACE PROFILE
+# =============================================================================
+
+example:
+  description: "Example workspace-profile.yaml for a pnpm monorepo"
+  content: |
+    # Generated by TEA Language Inference
+    # DO NOT EDIT - regenerate with `*LI --workspace`
+
+    metadata:
+      workspace_name: "acme-platform"
+      workspace_type: "pnpm"
+      workspace_root: "/home/dev/acme-platform"
+      detection_source: "pnpm-workspace.yaml"
+      created_at: "2025-01-15T10:30:00Z"
+      updated_at: "2025-01-23T14:00:00Z"
+      tea_version: "1.0.0"
+
+    packages:
+      total_count: 8
+      by_language:
+        TypeScript: 5
+        Python: 2
+        Go: 1
+
+      items:
+        - name: "@acme/types"
+          path: "packages/types"
+          primary_language: "TypeScript"
+          profile_path: "_bmad/testarch/packages/types/language-profile.yaml"
+          profile_status: "generated"
+          test_framework: "vitest"
+          test_directory: "src/__tests__"
+          has_tests: true
+          test_count: 12
+          depends_on: []
+          tags: ["shared", "library"]
+
+        - name: "@acme/api-client"
+          path: "packages/api-client"
+          primary_language: "TypeScript"
+          profile_path: "_bmad/testarch/packages/api-client/language-profile.yaml"
+          profile_status: "generated"
+          test_framework: "vitest"
+          test_directory: "src/__tests__"
+          has_tests: true
+          test_count: 25
+          depends_on: ["@acme/types"]
+          tags: ["frontend", "library"]
+
+        - name: "@acme/web-app"
+          path: "apps/web"
+          primary_language: "TypeScript"
+          profile_path: "_bmad/testarch/packages/web-app/language-profile.yaml"
+          profile_status: "generated"
+          test_framework: "vitest"
+          test_directory: "__tests__"
+          has_tests: true
+          test_count: 45
+          depends_on: ["@acme/types", "@acme/api-client", "@acme/ui-components"]
+          tags: ["frontend", "app"]
+
+        - name: "@acme/ui-components"
+          path: "packages/ui"
+          primary_language: "TypeScript"
+          profile_path: "_bmad/testarch/packages/ui-components/language-profile.yaml"
+          profile_status: "generated"
+          test_framework: "vitest"
+          test_directory: "src/__tests__"
+          has_tests: true
+          test_count: 80
+          depends_on: ["@acme/types"]
+          tags: ["frontend", "library", "ui"]
+
+        - name: "@acme/test-utils"
+          path: "packages/test-utils"
+          primary_language: "TypeScript"
+          profile_path: "_bmad/testarch/packages/test-utils/language-profile.yaml"
+          profile_status: "generated"
+          test_framework: "vitest"
+          test_directory: "src/__tests__"
+          has_tests: true
+          test_count: 8
+          depends_on: ["@acme/types"]
+          tags: ["testing", "library"]
+
+        - name: "acme-ml-service"
+          path: "services/ml"
+          primary_language: "Python"
+          profile_path: "_bmad/testarch/packages/ml-service/language-profile.yaml"
+          profile_status: "generated"
+          test_framework: "pytest"
+          test_directory: "tests/"
+          has_tests: true
+          test_count: 35
+          depends_on: []
+          tags: ["backend", "ml", "service"]
+
+        - name: "acme-data-pipeline"
+          path: "services/data-pipeline"
+          primary_language: "Python"
+          profile_path: "_bmad/testarch/packages/data-pipeline/language-profile.yaml"
+          profile_status: "generated"
+          test_framework: "pytest"
+          test_directory: "tests/"
+          has_tests: true
+          test_count: 22
+          depends_on: []
+          tags: ["backend", "data", "service"]
+
+        - name: "acme-gateway"
+          path: "services/gateway"
+          primary_language: "Go"
+          profile_path: "_bmad/testarch/packages/gateway/language-profile.yaml"
+          profile_status: "generated"
+          test_framework: "go test"
+          test_directory: ""  # Go tests are colocated
+          has_tests: true
+          test_count: 40
+          depends_on: []
+          tags: ["backend", "api", "service"]
+
+    language_distribution:
+      primary_languages: ["TypeScript", "Python", "Go"]
+      languages:
+        TypeScript:
+          package_count: 5
+          packages: ["@acme/types", "@acme/api-client", "@acme/web-app", "@acme/ui-components", "@acme/test-utils"]
+          test_frameworks: ["vitest"]
+        Python:
+          package_count: 2
+          packages: ["acme-ml-service", "acme-data-pipeline"]
+          test_frameworks: ["pytest"]
+        Go:
+          package_count: 1
+          packages: ["acme-gateway"]
+          test_frameworks: ["go test"]
+
+    shared_test_infrastructure:
+      test_utilities:
+        - name: "@acme/test-utils"
+          path: "packages/test-utils"
+          language: "TypeScript"
+          exports:
+            - "createMockUser"
+            - "createMockProduct"
+            - "setupMockApi"
+            - "TestWrapper"
+          used_by:
+            - "@acme/web-app"
+            - "@acme/ui-components"
+            - "@acme/api-client"
+
+      shared_fixtures:
+        - path: "fixtures/sample-users.json"
+          type: "json"
+          description: "Sample user data for tests"
+          used_by: ["@acme/web-app", "acme-gateway"]
+
+        - path: "fixtures/products.json"
+          type: "json"
+          description: "Sample product catalog"
+          used_by: ["@acme/web-app", "acme-ml-service"]
+
+      e2e_suites:
+        - name: "Web App E2E"
+          path: "e2e/web"
+          framework: "Playwright"
+          covers_packages: ["@acme/web-app", "@acme/api-client"]
+
+        - name: "API Integration"
+          path: "e2e/api"
+          framework: "pytest"
+          covers_packages: ["acme-gateway", "acme-ml-service"]
+
+      shared_mocks:
+        - path: "packages/test-utils/src/mocks"
+          language: "TypeScript"
+          mocks: ["mockApiClient", "mockAuthProvider", "mockStorage"]
+
+    test_execution:
+      strategy: "orchestrated"
+      orchestrator:
+        tool: "turbo"
+        test_target: "test"
+        affected_command: "turbo run test --filter=...[origin/main]"
+
+      parallel_config:
+        max_workers: 4
+        group_by: "language"
+
+      dependency_graph:
+        test_order:
+          - ["@acme/types"]
+          - ["@acme/test-utils", "@acme/api-client", "@acme/ui-components"]
+          - ["@acme/web-app"]
+        critical_path: ["@acme/types", "@acme/api-client"]
+
+    ci_configuration:
+      matrix_strategy: "per_language"
+      shared_steps:
+        - "Install pnpm dependencies"
+        - "Build @acme/types first"
+        - "Start docker-compose services"
+
+      cache_keys:
+        dependencies: "pnpm-${{ hashFiles('pnpm-lock.yaml') }}"
+        build: "build-${{ hashFiles('packages/*/src/**') }}"
+
+    workspace_defaults:
+      test_framework: "vitest"
+      coverage_threshold:
+        lines: 80
+        branches: 75
+        functions: 80
+      test_patterns:
+        - "**/*.test.ts"
+        - "**/*.test.tsx"
+        - "**/*.spec.ts"
+      timeout: 10000
+      characteristics:
+        typing: "static"
+        async_model: "async-await"
+        module_system: "esm"
+
+# =============================================================================
+# ADDITIONAL EXAMPLES
+# =============================================================================
+
+examples:
+  go_workspace:
+    description: "Go workspace example"
+    content: |
+      metadata:
+        workspace_name: "go-microservices"
+        workspace_type: "go-work"
+        detection_source: "go.work"
+
+      packages:
+        total_count: 4
+        by_language:
+          Go: 4
+
+        items:
+          - name: "cmd/api"
+            path: "cmd/api"
+            primary_language: "Go"
+            test_framework: "go test"
+            has_tests: true
+            depends_on: ["pkg/shared", "internal/auth"]
+            tags: ["service", "api"]
+
+          - name: "cmd/worker"
+            path: "cmd/worker"
+            primary_language: "Go"
+            test_framework: "go test"
+            has_tests: true
+            depends_on: ["pkg/shared"]
+            tags: ["service", "worker"]
+
+          - name: "pkg/shared"
+            path: "pkg/shared"
+            primary_language: "Go"
+            test_framework: "go test"
+            has_tests: true
+            depends_on: []
+            tags: ["library", "shared"]
+
+          - name: "internal/auth"
+            path: "internal/auth"
+            primary_language: "Go"
+            test_framework: "go test"
+            has_tests: true
+            depends_on: ["pkg/shared"]
+            tags: ["library", "internal"]
+
+      test_execution:
+        strategy: "dependency_order"
+        dependency_graph:
+          test_order:
+            - ["pkg/shared"]
+            - ["internal/auth"]
+            - ["cmd/api", "cmd/worker"]
+
+  cargo_workspace:
+    description: "Rust Cargo workspace example"
+    content: |
+      metadata:
+        workspace_name: "rust-platform"
+        workspace_type: "cargo-workspace"
+        detection_source: "Cargo.toml"
+
+      packages:
+        total_count: 3
+        by_language:
+          Rust: 3
+
+        items:
+          - name: "core"
+            path: "crates/core"
+            primary_language: "Rust"
+            test_framework: "cargo test"
+            has_tests: true
+            depends_on: []
+            tags: ["library"]
+
+          - name: "api"
+            path: "crates/api"
+            primary_language: "Rust"
+            test_framework: "cargo test"
+            has_tests: true
+            depends_on: ["core"]
+            tags: ["service"]
+
+          - name: "cli"
+            path: "crates/cli"
+            primary_language: "Rust"
+            test_framework: "cargo test"
+            has_tests: true
+            depends_on: ["core"]
+            tags: ["binary"]
+
+      shared_test_infrastructure:
+        test_utilities:
+          - name: "test-utils"
+            path: "crates/test-utils"
+            language: "Rust"
+            exports: ["mock_db", "test_fixtures", "assert_json_eq"]
+
+  mixed_language_monorepo:
+    description: "Mixed language monorepo (TypeScript + Python + Go)"
+    content: |
+      metadata:
+        workspace_name: "full-stack-platform"
+        workspace_type: "custom"
+        detection_source: "Makefile"  # Custom orchestration
+
+      packages:
+        total_count: 6
+        by_language:
+          TypeScript: 2
+          Python: 2
+          Go: 2
+
+        items:
+          - name: "frontend"
+            path: "frontend"
+            primary_language: "TypeScript"
+            test_framework: "vitest"
+            tags: ["frontend"]
+
+          - name: "admin-dashboard"
+            path: "admin"
+            primary_language: "TypeScript"
+            test_framework: "vitest"
+            tags: ["frontend", "admin"]
+
+          - name: "ml-service"
+            path: "services/ml"
+            primary_language: "Python"
+            test_framework: "pytest"
+            tags: ["backend", "ml"]
+
+          - name: "data-processor"
+            path: "services/data"
+            primary_language: "Python"
+            test_framework: "pytest"
+            tags: ["backend", "data"]
+
+          - name: "api-gateway"
+            path: "services/gateway"
+            primary_language: "Go"
+            test_framework: "go test"
+            tags: ["backend", "api"]
+
+          - name: "auth-service"
+            path: "services/auth"
+            primary_language: "Go"
+            test_framework: "go test"
+            tags: ["backend", "auth"]
+
+      test_execution:
+        strategy: "parallel_groups"
+        parallel_config:
+          max_workers: 3
+          group_by: "language"
+
+      ci_configuration:
+        matrix_strategy: "per_language"
+        # Each language group runs in parallel
+        # TypeScript: node setup + vitest
+        # Python: python setup + pytest
+        # Go: go setup + go test

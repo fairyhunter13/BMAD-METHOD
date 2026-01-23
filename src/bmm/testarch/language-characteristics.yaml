@@ -1,0 +1,747 @@
+# Language Characteristics Model
+# Defines WHAT to detect in code, not specific languages
+# TEA uses this to infer characteristics from ANY programming language
+
+version: "1.0"
+description: |
+  This file defines abstract language characteristics that TEA detects
+  through code analysis. Instead of maintaining a registry of known languages,
+  TEA infers these characteristics dynamically from project code.
+
+  This enables support for:
+  - Any existing programming language
+  - Newly released languages
+  - Domain-specific languages (DSLs)
+  - Custom testing frameworks
+
+# =============================================================================
+# CHARACTERISTIC DEFINITIONS
+# =============================================================================
+
+characteristics:
+  # ---------------------------------------------------------------------------
+  # TYPE SYSTEM
+  # ---------------------------------------------------------------------------
+  typing:
+    description: "How the language handles types"
+    detection_signals:
+      - "Type annotations in function parameters or return values"
+      - "Generic/template syntax (e.g., <T>, [T], 'a)"
+      - "Interface, protocol, or trait definitions"
+      - "Type aliases or typedef declarations"
+      - "Explicit type casts or conversions"
+    values:
+      static: "Types checked at compile time (TypeScript, Java, Go, Rust)"
+      dynamic: "Types checked at runtime (JavaScript, Python, Ruby)"
+      gradual: "Optional static types (Python with hints, TypeScript strict mode)"
+      structural: "Types based on shape, not name (Go interfaces, TypeScript)"
+      nominal: "Types based on declared name (Java, C#)"
+    inference_rules:
+      - condition: "function parameters have type annotations"
+        suggests: ["static", "gradual"]
+        confidence: 0.8
+      - condition: "no type annotations anywhere"
+        suggests: ["dynamic"]
+        confidence: 0.7
+      - condition: "generic syntax like <T> or [T]"
+        suggests: ["static"]
+        confidence: 0.9
+
+  # ---------------------------------------------------------------------------
+  # ASYNC MODEL
+  # ---------------------------------------------------------------------------
+  async_model:
+    description: "How the language handles asynchronous operations"
+    detection_signals:
+      - "async/await keywords"
+      - "Promise, Future, Task, or Deferred types"
+      - "Callback function patterns"
+      - "Coroutine syntax (yield, generator)"
+      - "Channel or actor patterns"
+      - "go keyword (goroutines)"
+    values:
+      async-await: "async/await keywords (JS, Python, Rust, C#)"
+      promises: "Promise/Future chaining without await (older JS)"
+      callbacks: "Callback function patterns (Node.js style)"
+      coroutines: "Generator-based concurrency (Python generators, Lua)"
+      goroutines: "Lightweight threads with channels (Go)"
+      actors: "Actor model concurrency (Erlang, Elixir, Akka)"
+      threads: "OS thread-based concurrency (Java, C++)"
+      none: "No built-in async model or sync-only"
+    inference_rules:
+      - condition: "async and await keywords present"
+        suggests: ["async-await"]
+        confidence: 0.95
+      - condition: "Promise or Future types without await"
+        suggests: ["promises"]
+        confidence: 0.8
+      - condition: "go keyword followed by function call"
+        suggests: ["goroutines"]
+        confidence: 0.95
+      - condition: "spawn, send, receive keywords"
+        suggests: ["actors"]
+        confidence: 0.85
+
+  # ---------------------------------------------------------------------------
+  # TEST STRUCTURE
+  # ---------------------------------------------------------------------------
+  test_structure:
+    description: "How tests are organized and declared"
+    detection_signals:
+      - "Test function naming conventions (test_, Test, _test)"
+      - "Test decorators or attributes (@test, #[test], [Test])"
+      - "BDD-style blocks (describe, context, it, specify)"
+      - "Test class inheritance (extends TestCase)"
+      - "Table-driven test patterns"
+    values:
+      function_based: "Standalone test functions (pytest, Go testing)"
+      class_based: "Test classes with test methods (JUnit, unittest)"
+      bdd_style: "describe/it blocks (Jest, RSpec, Mocha)"
+      attribute_based: "Decorator/attribute marked tests (NUnit, pytest)"
+      table_driven: "Data-driven test tables (Go table tests)"
+      mixed: "Multiple styles supported"
+    inference_rules:
+      - condition: "functions named test_* or *_test"
+        suggests: ["function_based"]
+        confidence: 0.9
+      - condition: "describe and it blocks"
+        suggests: ["bdd_style"]
+        confidence: 0.95
+      - condition: "class extends TestCase or similar"
+        suggests: ["class_based"]
+        confidence: 0.9
+      - condition: "@test or #[test] decorators"
+        suggests: ["attribute_based"]
+        confidence: 0.95
+
+  # ---------------------------------------------------------------------------
+  # MODULE SYSTEM
+  # ---------------------------------------------------------------------------
+  module_system:
+    description: "How code is organized and imported"
+    detection_signals:
+      - "import/export statements"
+      - "require/module.exports patterns"
+      - "use/mod declarations"
+      - "package/namespace declarations"
+      - "include/require directives"
+    values:
+      esm: "ES Modules (import/export)"
+      commonjs: "CommonJS (require/module.exports)"
+      python_import: "Python imports (import, from...import)"
+      go_package: "Go packages (package, import)"
+      rust_mod: "Rust modules (mod, use, crate)"
+      java_package: "Java packages (package, import)"
+      csharp_namespace: "C# namespaces (namespace, using)"
+      cpp_include: "C++ includes (#include)"
+      mixed: "Multiple module systems"
+    inference_rules:
+      - condition: "import X from 'Y' or export"
+        suggests: ["esm"]
+        confidence: 0.95
+      - condition: "require('X') or module.exports"
+        suggests: ["commonjs"]
+        confidence: 0.95
+      - condition: "from X import Y"
+        suggests: ["python_import"]
+        confidence: 0.95
+
+  # ---------------------------------------------------------------------------
+  # CLEANUP IDIOM
+  # ---------------------------------------------------------------------------
+  cleanup_idiom:
+    description: "How resources are cleaned up after use"
+    detection_signals:
+      - "try/finally blocks"
+      - "defer statements"
+      - "with/using context managers"
+      - "RAII patterns (destructors)"
+      - "afterEach/teardown hooks"
+      - "dispose/close method calls"
+    values:
+      try_finally: "try/finally blocks (most languages)"
+      defer: "defer statement (Go, Swift, Zig)"
+      context_manager: "with/using blocks (Python, C#)"
+      raii: "Resource Acquisition Is Initialization (C++, Rust)"
+      hooks: "Test framework hooks (afterEach, tearDown)"
+      manual: "Manual cleanup calls"
+      mixed: "Multiple patterns available"
+    inference_rules:
+      - condition: "defer keyword"
+        suggests: ["defer"]
+        confidence: 0.95
+      - condition: "with X as Y: or using(X)"
+        suggests: ["context_manager"]
+        confidence: 0.95
+      - condition: "afterEach or tearDown functions"
+        suggests: ["hooks"]
+        confidence: 0.9
+      - condition: "Drop trait or destructor"
+        suggests: ["raii"]
+        confidence: 0.9
+
+  # ---------------------------------------------------------------------------
+  # ERROR HANDLING
+  # ---------------------------------------------------------------------------
+  error_handling:
+    description: "How errors and exceptions are handled"
+    detection_signals:
+      - "try/catch/throw keywords"
+      - "Result/Option/Either types"
+      - "Error return values (err as second return)"
+      - "panic/recover mechanisms"
+      - "? operator for error propagation"
+    values:
+      exceptions: "try/catch exceptions (Java, Python, JS, C#)"
+      result_types: "Result/Option types (Rust, Haskell, F#)"
+      error_returns: "Error as return value (Go, C)"
+      panic_recover: "panic/recover (Go, Rust panic)"
+      mixed: "Multiple error handling styles"
+    inference_rules:
+      - condition: "try/catch blocks"
+        suggests: ["exceptions"]
+        confidence: 0.9
+      - condition: "Result<T, E> or Option<T>"
+        suggests: ["result_types"]
+        confidence: 0.95
+      - condition: "if err != nil"
+        suggests: ["error_returns"]
+        confidence: 0.95
+      - condition: "? operator on function calls"
+        suggests: ["result_types"]
+        confidence: 0.9
+
+  # ---------------------------------------------------------------------------
+  # ASSERTION STYLE
+  # ---------------------------------------------------------------------------
+  assertion_style:
+    description: "How test assertions are written"
+    detection_signals:
+      - "expect().toBe() style (Jest, Chai)"
+      - "assert_* functions (pytest, Go)"
+      - "Assert.* methods (NUnit, JUnit)"
+      - "should.* syntax (RSpec, Chai)"
+      - "Built-in assert statements"
+    values:
+      expect_chain: "expect(x).toBe(y) fluent style"
+      assert_function: "assert_equal(x, y) function style"
+      assert_method: "Assert.AreEqual(x, y) static method style"
+      should_syntax: "x.should.equal(y) BDD style"
+      built_in_assert: "assert x == y language built-in"
+      mixed: "Multiple assertion styles"
+    inference_rules:
+      - condition: "expect(X).toBe or expect(X).toEqual"
+        suggests: ["expect_chain"]
+        confidence: 0.95
+      - condition: "assert_eq or assertEqual"
+        suggests: ["assert_function"]
+        confidence: 0.9
+      - condition: "Assert.AreEqual or assertEquals"
+        suggests: ["assert_method"]
+        confidence: 0.9
+
+  # ---------------------------------------------------------------------------
+  # FIXTURE/SETUP PATTERN
+  # ---------------------------------------------------------------------------
+  fixture_pattern:
+    description: "How test fixtures and setup are handled"
+    detection_signals:
+      - "Fixture decorators (@fixture, @pytest.fixture)"
+      - "setUp/tearDown methods"
+      - "beforeEach/afterEach hooks"
+      - "Dependency injection patterns"
+      - "Factory functions"
+    values:
+      decorator_fixture: "Decorator-based fixtures (pytest)"
+      method_hooks: "setUp/tearDown methods (JUnit, unittest)"
+      function_hooks: "beforeEach/afterEach functions (Jest, Mocha)"
+      constructor_injection: "Constructor dependency injection"
+      parameter_injection: "Test parameter injection (Playwright)"
+      factory_functions: "Factory helper functions"
+      none: "No formal fixture system"
+    inference_rules:
+      - condition: "@fixture or @pytest.fixture"
+        suggests: ["decorator_fixture"]
+        confidence: 0.95
+      - condition: "setUp and tearDown methods"
+        suggests: ["method_hooks"]
+        confidence: 0.9
+      - condition: "beforeEach/afterEach calls"
+        suggests: ["function_hooks"]
+        confidence: 0.9
+
+# =============================================================================
+# FILE EXTENSION HINTS
+# =============================================================================
+# Used as initial signals, NOT definitive language identification
+
+file_extension_hints:
+  ".ts": { likely: "TypeScript", confidence: 0.8 }
+  ".tsx": { likely: "TypeScript+React", confidence: 0.8 }
+  ".js": { likely: "JavaScript", confidence: 0.7 }
+  ".jsx": { likely: "JavaScript+React", confidence: 0.7 }
+  ".mjs": { likely: "JavaScript ESM", confidence: 0.8 }
+  ".cjs": { likely: "JavaScript CommonJS", confidence: 0.8 }
+  ".py": { likely: "Python", confidence: 0.9 }
+  ".go": { likely: "Go", confidence: 0.95 }
+  ".rs": { likely: "Rust", confidence: 0.95 }
+  ".java": { likely: "Java", confidence: 0.95 }
+  ".kt": { likely: "Kotlin", confidence: 0.95 }
+  ".scala": { likely: "Scala", confidence: 0.95 }
+  ".cs": { likely: "C#", confidence: 0.9 }
+  ".fs": { likely: "F#", confidence: 0.9 }
+  ".rb": { likely: "Ruby", confidence: 0.9 }
+  ".swift": { likely: "Swift", confidence: 0.95 }
+  ".zig": { likely: "Zig", confidence: 0.95 }
+  ".v": { likely: "V or Vlang", confidence: 0.7 }
+  ".nim": { likely: "Nim", confidence: 0.95 }
+  ".cr": { likely: "Crystal", confidence: 0.95 }
+  ".ex": { likely: "Elixir", confidence: 0.9 }
+  ".exs": { likely: "Elixir Script", confidence: 0.9 }
+  ".erl": { likely: "Erlang", confidence: 0.95 }
+  ".clj": { likely: "Clojure", confidence: 0.95 }
+  ".lua": { likely: "Lua", confidence: 0.9 }
+  ".pl": { likely: "Perl", confidence: 0.7 }
+  ".php": { likely: "PHP", confidence: 0.9 }
+  ".dart": { likely: "Dart", confidence: 0.95 }
+  ".jl": { likely: "Julia", confidence: 0.95 }
+  ".r": { likely: "R", confidence: 0.7 }
+  ".mojo": { likely: "Mojo", confidence: 0.95 }
+  ".vale": { likely: "Vale", confidence: 0.95 }
+  ".odin": { likely: "Odin", confidence: 0.95 }
+  ".c3": { likely: "C3", confidence: 0.95 }
+
+# =============================================================================
+# BUILD FILE HINTS
+# =============================================================================
+# Stronger signals than file extensions
+
+build_file_hints:
+  "package.json":
+    language: ["JavaScript", "TypeScript"]
+    check_field: "devDependencies.typescript"
+    if_present: "TypeScript"
+    if_absent: "JavaScript"
+  "tsconfig.json":
+    language: "TypeScript"
+    confidence: 0.99
+  "pyproject.toml":
+    language: "Python"
+    confidence: 0.95
+  "requirements.txt":
+    language: "Python"
+    confidence: 0.9
+  "setup.py":
+    language: "Python"
+    confidence: 0.9
+  "go.mod":
+    language: "Go"
+    confidence: 0.99
+  "Cargo.toml":
+    language: "Rust"
+    confidence: 0.99
+  "pom.xml":
+    language: "Java"
+    confidence: 0.95
+  "build.gradle":
+    language: ["Java", "Kotlin", "Groovy"]
+    check_content: "kotlin"
+    if_present: "Kotlin"
+    if_absent: "Java"
+  "build.gradle.kts":
+    language: "Kotlin"
+    confidence: 0.99
+  "*.csproj":
+    language: "C#"
+    confidence: 0.95
+  "*.fsproj":
+    language: "F#"
+    confidence: 0.95
+  "Gemfile":
+    language: "Ruby"
+    confidence: 0.95
+  "Package.swift":
+    language: "Swift"
+    confidence: 0.99
+  "mix.exs":
+    language: "Elixir"
+    confidence: 0.99
+  "project.clj":
+    language: "Clojure"
+    confidence: 0.99
+  "dub.json":
+    language: "D"
+    confidence: 0.99
+  "pubspec.yaml":
+    language: "Dart"
+    confidence: 0.99
+  "build.zig":
+    language: "Zig"
+    confidence: 0.99
+  "*.nimble":
+    language: "Nim"
+    confidence: 0.99
+
+# =============================================================================
+# TEST FILE PATTERNS
+# =============================================================================
+# How to identify test files in different ecosystems
+
+test_file_patterns:
+  - pattern: "test_*.{ext}"
+    style: "prefix"
+    common_in: ["Python", "Ruby"]
+  - pattern: "*_test.{ext}"
+    style: "suffix"
+    common_in: ["Go", "Rust"]
+  - pattern: "*.test.{ext}"
+    style: "dot_suffix"
+    common_in: ["JavaScript", "TypeScript"]
+  - pattern: "*.spec.{ext}"
+    style: "spec_suffix"
+    common_in: ["JavaScript", "TypeScript", "Ruby"]
+  - pattern: "*Test.{ext}"
+    style: "pascal_suffix"
+    common_in: ["Java", "C#", "Kotlin"]
+  - pattern: "*Tests.{ext}"
+    style: "plural_pascal_suffix"
+    common_in: ["C#"]
+  - pattern: "tests/**/*"
+    style: "tests_directory"
+    common_in: ["Python", "Rust", "JavaScript"]
+  - pattern: "test/**/*"
+    style: "test_directory"
+    common_in: ["Java", "Go"]
+  - pattern: "__tests__/**/*"
+    style: "dunder_tests"
+    common_in: ["JavaScript", "TypeScript"]
+  - pattern: "spec/**/*"
+    style: "spec_directory"
+    common_in: ["Ruby", "JavaScript"]
+
+# =============================================================================
+# UNKNOWN LANGUAGE PROTOCOL
+# =============================================================================
+# How to handle completely unknown languages
+
+unknown_language_protocol:
+  description: |
+    When TEA encounters a language it cannot identify or infer characteristics for,
+    it follows this collaborative protocol to learn the language patterns.
+
+  steps:
+    1_request_sample:
+      prompt: |
+        I've detected code files with extension `.{ext}` but I'm not familiar with this language.
+
+        To generate tests correctly, I need to understand the testing patterns.
+        Please provide ONE of:
+
+        1. A sample test file (2-3 tests) - I'll learn from it
+        2. The language/framework documentation URL
+        3. Quick answers: How do you declare tests? How do you assert?
+
+    2_analyze_sample:
+      extract:
+        - "Test function/method declaration pattern"
+        - "Import/module statements"
+        - "Assertion syntax variations"
+        - "Setup/teardown patterns"
+        - "Async handling (if any)"
+
+    3_confirm_understanding:
+      prompt: |
+        I've learned these patterns from your sample:
+
+        **Test Declaration:** `{pattern}`
+        **Assertions:** `{assertions}`
+        **Cleanup:** `{cleanup}`
+
+        Is this correct? Any adjustments?
+
+    4_persist_profile:
+      action: "Save learned patterns to language-profile.yaml"
+      reuse: "Apply to all future test generation"
+
+# =============================================================================
+# WORKSPACE/MONOREPO DETECTION
+# =============================================================================
+# How to identify and analyze monorepo/workspace structures
+
+workspace_detection:
+  description: |
+    Monorepos contain multiple packages/services, often with different languages.
+    TEA must detect workspace structure to create per-package language profiles
+    while maintaining a root workspace profile for cross-cutting concerns.
+
+  workspace_markers:
+    # JavaScript/TypeScript Ecosystem
+    - file: "pnpm-workspace.yaml"
+      type: "pnpm"
+      packages_field: "packages"
+      packages_format: "glob_array"
+      confidence: 0.99
+      example: |
+        packages:
+          - 'packages/*'
+          - 'apps/*'
+
+    - file: "lerna.json"
+      type: "lerna"
+      packages_field: "packages"
+      packages_format: "glob_array"
+      confidence: 0.99
+      example: |
+        {
+          "packages": ["packages/*"],
+          "version": "independent"
+        }
+
+    - file: "nx.json"
+      type: "nx"
+      packages_field: null # Uses workspace.json or package.json workspaces
+      related_files: ["workspace.json", "project.json"]
+      confidence: 0.95
+      detection_hint: "Check for 'projects' in workspace.json or scan for project.json files"
+
+    - file: "turbo.json"
+      type: "turbo"
+      packages_field: null # Uses package.json workspaces
+      related_files: ["package.json"]
+      confidence: 0.95
+      detection_hint: "Check package.json 'workspaces' field"
+
+    - file: "rush.json"
+      type: "rush"
+      packages_field: "projects"
+      packages_format: "object_array"
+      confidence: 0.99
+      example: |
+        {
+          "projects": [
+            { "packageName": "@scope/pkg", "projectFolder": "packages/pkg" }
+          ]
+        }
+
+    # package.json workspaces (npm/yarn native)
+    - file: "package.json"
+      type: "npm-workspaces"
+      packages_field: "workspaces"
+      packages_format: "glob_array_or_object"
+      confidence: 0.85
+      requires_check: "workspaces field must exist"
+      example: |
+        {
+          "workspaces": ["packages/*", "apps/*"]
+        }
+        // or yarn-style:
+        {
+          "workspaces": { "packages": ["packages/*"] }
+        }
+
+    # Go Ecosystem
+    - file: "go.work"
+      type: "go-work"
+      packages_field: null
+      packages_format: "use_directives"
+      confidence: 0.99
+      example: |
+        go 1.21
+        use (
+            ./cmd/api
+            ./pkg/shared
+            ./services/auth
+        )
+
+    # Rust Ecosystem
+    - file: "Cargo.toml"
+      type: "cargo-workspace"
+      packages_field: "[workspace].members"
+      packages_format: "toml_array"
+      confidence: 0.95
+      requires_check: "[workspace] section must exist"
+      example: |
+        [workspace]
+        members = [
+            "crates/*",
+            "bins/*",
+        ]
+
+    # Python Ecosystem
+    - file: "pyproject.toml"
+      type: "python-monorepo"
+      packages_field: "[tool.hatch.envs] or [tool.poetry.packages]"
+      packages_format: "tool_specific"
+      confidence: 0.7
+      detection_hint: "Check for multiple pyproject.toml in subdirectories"
+
+    # Java/JVM Ecosystem
+    - file: "settings.gradle"
+      type: "gradle-multiproject"
+      packages_field: "include"
+      packages_format: "include_statements"
+      confidence: 0.95
+      example: |
+        include 'app', 'core', 'api'
+        // or
+        include ':services:auth', ':services:billing'
+
+    - file: "settings.gradle.kts"
+      type: "gradle-multiproject-kts"
+      packages_field: "include"
+      packages_format: "kotlin_dsl"
+      confidence: 0.95
+
+    - file: "pom.xml"
+      type: "maven-multimodule"
+      packages_field: "modules/module"
+      packages_format: "xml"
+      confidence: 0.85
+      requires_check: "<modules> section must exist"
+      example: |
+        <modules>
+          <module>core</module>
+          <module>api</module>
+        </modules>
+
+    # .NET Ecosystem
+    - file: "*.sln"
+      type: "dotnet-solution"
+      packages_field: null
+      packages_format: "solution_file"
+      confidence: 0.9
+      detection_hint: "Parse .sln for Project entries"
+
+    - file: "Directory.Build.props"
+      type: "dotnet-central"
+      packages_field: null
+      confidence: 0.7
+      detection_hint: "Indicates centralized build, scan for *.csproj files"
+
+    # Bazel
+    - file: "WORKSPACE"
+      type: "bazel"
+      packages_field: null
+      packages_format: "bazel_packages"
+      confidence: 0.95
+      detection_hint: "Scan for BUILD or BUILD.bazel files in subdirectories"
+
+    - file: "WORKSPACE.bazel"
+      type: "bazel"
+      packages_field: null
+      packages_format: "bazel_packages"
+      confidence: 0.95
+
+    # Buck2
+    - file: ".buckconfig"
+      type: "buck2"
+      packages_field: null
+      confidence: 0.9
+      detection_hint: "Scan for BUCK files"
+
+    # Pants
+    - file: "pants.toml"
+      type: "pants"
+      packages_field: null
+      confidence: 0.95
+      detection_hint: "Scan for BUILD files"
+
+  # -----------------------------------------------------------------------------
+  # PACKAGE DETECTION STRATEGIES
+  # -----------------------------------------------------------------------------
+  package_detection:
+    description: "Strategies for finding packages within a workspace"
+
+    strategies:
+      glob_expansion:
+        description: "Expand glob patterns from workspace config"
+        apply_to: ["pnpm", "lerna", "npm-workspaces", "cargo-workspace"]
+
+      directory_scan:
+        description: "Scan for build files in subdirectories"
+        apply_to: ["nx", "bazel", "buck2", "pants"]
+        scan_for:
+          - "package.json"
+          - "go.mod"
+          - "Cargo.toml"
+          - "pyproject.toml"
+          - "pom.xml"
+          - "build.gradle"
+          - "*.csproj"
+          - "BUILD"
+          - "BUILD.bazel"
+          - "project.json"
+
+      manifest_parse:
+        description: "Parse explicit project lists from manifest"
+        apply_to: ["rush", "maven-multimodule", "gradle-multiproject"]
+
+  # -----------------------------------------------------------------------------
+  # CROSS-PACKAGE PATTERNS
+  # -----------------------------------------------------------------------------
+  cross_package_patterns:
+    description: "Common patterns for shared code in monorepos"
+
+    shared_test_utilities:
+      locations:
+        - "packages/test-utils"
+        - "libs/testing"
+        - "shared/test-helpers"
+        - "tools/testing"
+        - "internal/testutil" # Go
+        - "crates/test-utils" # Rust
+      detection: "Look for test helper exports used by multiple packages"
+
+    shared_fixtures:
+      locations:
+        - "fixtures/"
+        - "test-fixtures/"
+        - "__fixtures__/"
+        - "testdata/" # Go convention
+      detection: "Directories with test data used across packages"
+
+    shared_mocks:
+      locations:
+        - "packages/mocks"
+        - "libs/mocks"
+        - "__mocks__/" # Jest convention
+      detection: "Mock implementations shared across packages"
+
+    e2e_tests:
+      locations:
+        - "e2e/"
+        - "tests/e2e/"
+        - "integration/"
+        - "tests/integration/"
+      detection: "Cross-package integration/E2E tests"
+
+  # -----------------------------------------------------------------------------
+  # MONOREPO PROFILE STRUCTURE
+  # -----------------------------------------------------------------------------
+  profile_structure:
+    description: "How language profiles are organized in a monorepo"
+
+    workspace_profile:
+      path: "_bmad/testarch/workspace-profile.yaml"
+      contains:
+        - "Workspace type and configuration"
+        - "List of packages with paths"
+        - "Cross-package shared patterns"
+        - "Common test utilities location"
+        - "Aggregated language distribution"
+
+    package_profiles:
+      path_template: "_bmad/testarch/packages/{package-name}/language-profile.yaml"
+      contains:
+        - "Package-specific language profile (same schema as single-project)"
+        - "Package-local test configuration"
+        - "Dependencies on other packages"
+
+    inheritance:
+      description: "Package profiles can inherit from workspace defaults"
+      example: |
+        # In package profile:
+        extends: "../../workspace-defaults.yaml"
+        overrides:
+          test_framework:
+            detected: "vitest"  # Override workspace default of "jest"

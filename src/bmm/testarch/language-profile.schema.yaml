@@ -1,0 +1,1366 @@
+# Language Profile Schema
+# This schema defines the structure of dynamically generated language profiles
+# Profiles are created at runtime by the language-inference workflow
+# and stored in {project-root}/_bmad/testarch/language-profile.yaml
+
+version: "1.0"
+description: |
+  A Language Profile captures all characteristics TEA needs to generate
+  tests for a specific project. Profiles are:
+  - Generated dynamically through code analysis
+  - Learned from user-provided samples
+  - Persisted for reuse across sessions
+  - Updated when patterns change
+
+# =============================================================================
+# SCHEMA DEFINITION
+# =============================================================================
+
+schema:
+  # ---------------------------------------------------------------------------
+  # METADATA
+  # ---------------------------------------------------------------------------
+  metadata:
+    type: object
+    required: true
+    properties:
+      schema_version:
+        type: string
+        description: "Version of this schema"
+        example: "1.0"
+      generated_at:
+        type: datetime
+        description: "When this profile was generated"
+      last_updated:
+        type: datetime
+        description: "When this profile was last modified"
+      source:
+        type: enum
+        values: ["tier-1-known", "tier-2-inferred", "tier-3-collaborative"]
+        description: "How this profile was created"
+      overall_confidence:
+        type: float
+        range: [0.0, 1.0]
+        description: "Overall confidence in profile accuracy"
+
+  # ---------------------------------------------------------------------------
+  # LANGUAGE IDENTIFICATION
+  # ---------------------------------------------------------------------------
+  language:
+    type: object
+    required: true
+    properties:
+      inferred_name:
+        type: string
+        description: "Best guess at language name, or 'Unknown'"
+        examples: ["TypeScript", "Python", "Go", "Unknown"]
+      confidence:
+        type: float
+        range: [0.0, 1.0]
+        description: "Confidence in language identification"
+      version_detected:
+        type: string
+        nullable: true
+        description: "Detected language version if identifiable"
+        examples: ["5.3", "3.12", "1.21", null]
+      file_extensions:
+        type: array
+        items: string
+        description: "File extensions associated with this language"
+        examples: [[".ts", ".tsx"], [".py"], [".go"]]
+      evidence:
+        type: array
+        items: string
+        description: "Files/patterns that led to this identification"
+
+  # ---------------------------------------------------------------------------
+  # DETECTED CHARACTERISTICS
+  # ---------------------------------------------------------------------------
+  characteristics:
+    type: object
+    required: true
+    description: "Inferred language characteristics"
+    properties:
+      typing:
+        type: characteristic_detection
+        description: "Type system characteristics"
+      async_model:
+        type: characteristic_detection
+        description: "Asynchronous programming model"
+      test_structure:
+        type: characteristic_detection
+        description: "How tests are organized"
+      module_system:
+        type: characteristic_detection
+        description: "Import/export system"
+      cleanup_idiom:
+        type: characteristic_detection
+        description: "Resource cleanup patterns"
+      error_handling:
+        type: characteristic_detection
+        description: "Error handling approach"
+      assertion_style:
+        type: characteristic_detection
+        description: "Test assertion patterns"
+      fixture_pattern:
+        type: characteristic_detection
+        description: "Test fixture/setup approach"
+
+  # ---------------------------------------------------------------------------
+  # CHARACTERISTIC DETECTION STRUCTURE
+  # ---------------------------------------------------------------------------
+  characteristic_detection:
+    type: object
+    properties:
+      value:
+        type: string
+        description: "Detected characteristic value"
+      confidence:
+        type: float
+        range: [0.0, 1.0]
+      evidence:
+        type: string
+        description: "Code snippet demonstrating this characteristic"
+      alternatives:
+        type: array
+        items:
+          type: object
+          properties:
+            value: { type: string }
+            confidence: { type: float }
+        description: "Other possible values with lower confidence"
+
+  # ---------------------------------------------------------------------------
+  # SYNTAX PATTERNS (LEARNED)
+  # ---------------------------------------------------------------------------
+  syntax_patterns:
+    type: object
+    required: true
+    description: "Extracted syntax patterns for code generation"
+    properties:
+      test_function:
+        type: syntax_pattern
+        description: "How to declare a test function"
+      async_test_function:
+        type: syntax_pattern
+        description: "How to declare an async test function"
+      test_suite:
+        type: syntax_pattern
+        description: "How to group tests (describe, class, module)"
+      assertion:
+        type: syntax_pattern_list
+        description: "Assertion syntax variations"
+      import_statement:
+        type: syntax_pattern
+        description: "How to import modules"
+      fixture_declaration:
+        type: syntax_pattern
+        description: "How to declare test fixtures"
+      setup_hook:
+        type: syntax_pattern
+        description: "Before/setup hook syntax"
+      teardown_hook:
+        type: syntax_pattern
+        description: "After/teardown hook syntax"
+      async_await:
+        type: syntax_pattern
+        description: "Async/await syntax"
+      error_throw:
+        type: syntax_pattern
+        description: "How to throw/raise errors"
+      error_catch:
+        type: syntax_pattern
+        description: "How to catch errors"
+
+  # ---------------------------------------------------------------------------
+  # SYNTAX PATTERN STRUCTURE
+  # ---------------------------------------------------------------------------
+  syntax_pattern:
+    type: object
+    properties:
+      pattern:
+        type: string
+        description: "Pattern template with {placeholders}"
+        example: "test('{description}', async ({fixtures}) => { {body} })"
+      example:
+        type: string
+        description: "Concrete example of the pattern"
+      variables:
+        type: object
+        description: "Placeholder descriptions"
+        additionalProperties: { type: string }
+
+  syntax_pattern_list:
+    type: object
+    properties:
+      patterns:
+        type: array
+        items:
+          type: syntax_pattern
+        description: "Multiple valid patterns for this concept"
+      preferred:
+        type: integer
+        description: "Index of preferred pattern (most common in codebase)"
+
+  # ---------------------------------------------------------------------------
+  # TEST FRAMEWORK
+  # ---------------------------------------------------------------------------
+  test_framework:
+    type: object
+    required: true
+    properties:
+      detected:
+        type: string
+        description: "Detected test framework name"
+        examples: ["playwright", "pytest", "jest", "go-test", "junit", "unknown"]
+      confidence:
+        type: float
+        range: [0.0, 1.0]
+      import_pattern:
+        type: string
+        description: "Import statement for test framework"
+        example: "import { test, expect } from '@playwright/test'"
+      run_command:
+        type: string
+        description: "Command to run tests"
+        example: "npx playwright test"
+      config_file:
+        type: string
+        nullable: true
+        description: "Test framework config file"
+        example: "playwright.config.ts"
+      capabilities:
+        type: object
+        properties:
+          parallel_execution: { type: boolean }
+          fixtures: { type: boolean }
+          parameterized_tests: { type: boolean }
+          async_support: { type: boolean }
+          mocking_built_in: { type: boolean }
+          coverage_built_in: { type: boolean }
+
+  # ---------------------------------------------------------------------------
+  # PROJECT CONTEXT
+  # ---------------------------------------------------------------------------
+  project_context:
+    type: object
+    description: "Project-specific information"
+    properties:
+      test_directory:
+        type: string
+        description: "Root test directory"
+        example: "tests/"
+      source_directory:
+        type: string
+        description: "Source code directory"
+        example: "src/"
+      package_manager:
+        type: string
+        description: "Package manager used"
+        examples: ["npm", "pnpm", "yarn", "pip", "poetry", "cargo", "go", "maven", "gradle", "nuget"]
+      build_tool:
+        type: string
+        nullable: true
+        description: "Build tool if different from package manager"
+      existing_tests:
+        type: integer
+        description: "Number of existing test files found"
+      test_file_pattern:
+        type: string
+        description: "Pattern for test files"
+        example: "*.spec.ts"
+
+  # ---------------------------------------------------------------------------
+  # WORKSPACE CONTEXT (for packages in monorepos)
+  # ---------------------------------------------------------------------------
+  workspace_context:
+    type: object
+    nullable: true
+    description: "Context when this profile is part of a workspace"
+    properties:
+      is_workspace_package:
+        type: boolean
+        description: "Whether this is a package in a workspace"
+      workspace_root:
+        type: string
+        description: "Path to workspace root (relative from this package)"
+        example: "../.."
+      workspace_profile_path:
+        type: string
+        description: "Path to workspace-profile.yaml from this package"
+        example: "../../_bmad/testarch/workspace-profile.yaml"
+      package_name:
+        type: string
+        description: "This package's name in the workspace"
+        example: "@myorg/api-client"
+      depends_on:
+        type: array
+        items: string
+        description: "Internal workspace packages this depends on"
+        example: ["@myorg/types", "@myorg/shared-utils"]
+      shared_test_utils:
+        type: array
+        items: string
+        description: "Workspace test utilities this package can use"
+        example: ["@myorg/test-utils"]
+      inherits_from:
+        type: string
+        nullable: true
+        description: "Path to defaults file to inherit from"
+        example: "../../_bmad/testarch/workspace-defaults.yaml"
+
+  # ---------------------------------------------------------------------------
+  # ADAPTATION HINTS
+  # ---------------------------------------------------------------------------
+  adaptation_hints:
+    type: object
+    description: "Hints for adapting abstract patterns to this language"
+    properties:
+      function_to_pattern:
+        type: string
+        description: "Map FUNCTION pseudocode to actual syntax"
+      async_to_pattern:
+        type: string
+        description: "Map ASYNC pseudocode to actual syntax"
+      cleanup_strategy:
+        type: string
+        description: "Recommended cleanup approach"
+        enum: ["defer", "try-finally", "context-manager", "hooks", "raii"]
+      composition_strategy:
+        type: string
+        description: "How to compose test utilities"
+        enum: ["merge-tests", "fixture-injection", "inheritance", "manual-wiring"]
+      factory_strategy:
+        type: string
+        description: "Recommended factory pattern"
+        enum: ["class-static", "factory-function", "builder-pattern", "fixture"]
+
+  # ---------------------------------------------------------------------------
+  # LEARNING HISTORY
+  # ---------------------------------------------------------------------------
+  learning_history:
+    type: array
+    description: "Record of how this profile was learned/updated"
+    items:
+      type: object
+      properties:
+        timestamp:
+          type: datetime
+        action:
+          type: enum
+          values: ["initial_inference", "user_correction", "sample_learning", "auto_update"]
+        details:
+          type: string
+        affected_fields:
+          type: array
+          items: string
+
+# =============================================================================
+# EXAMPLE PROFILE (TypeScript/Playwright)
+# =============================================================================
+
+example_profile:
+  metadata:
+    schema_version: "1.0"
+    generated_at: "2024-01-15T10:30:00Z"
+    last_updated: "2024-01-15T10:30:00Z"
+    source: "tier-2-inferred"
+    overall_confidence: 0.92
+
+  language:
+    inferred_name: "TypeScript"
+    confidence: 0.95
+    version_detected: "5.3"
+    file_extensions: [".ts", ".tsx"]
+    evidence:
+      - "tsconfig.json exists"
+      - "package.json has typescript devDependency"
+      - "Type annotations in source files"
+
+  characteristics:
+    typing:
+      value: "static"
+      confidence: 0.98
+      evidence: "function login(email: string, password: string): Promise<User>"
+    async_model:
+      value: "async-await"
+      confidence: 0.95
+      evidence: "async function fetchUser() { await api.get() }"
+    test_structure:
+      value: "bdd_style"
+      confidence: 0.90
+      evidence: "test.describe('Auth', () => { test('login', async () => {}) })"
+    module_system:
+      value: "esm"
+      confidence: 0.95
+      evidence: "import { test } from '@playwright/test'"
+    cleanup_idiom:
+      value: "hooks"
+      confidence: 0.85
+      evidence: "test.afterEach(async () => { await cleanup() })"
+      alternatives:
+        - value: "try_finally"
+          confidence: 0.60
+    error_handling:
+      value: "exceptions"
+      confidence: 0.90
+      evidence: "try { } catch (error) { throw new Error() }"
+    assertion_style:
+      value: "expect_chain"
+      confidence: 0.95
+      evidence: "expect(result).toBe(true)"
+    fixture_pattern:
+      value: "parameter_injection"
+      confidence: 0.92
+      evidence: "test('name', async ({ page, request }) => {})"
+
+  syntax_patterns:
+    test_function:
+      pattern: "test('{description}', async ({fixtures}) => {\n  {body}\n})"
+      example: "test('should login', async ({ page }) => {\n  await page.goto('/login');\n})"
+      variables:
+        description: "Test description string"
+        fixtures: "Comma-separated fixture names"
+        body: "Test implementation"
+    async_test_function:
+      pattern: "test('{description}', async ({fixtures}) => {\n  {body}\n})"
+      example: "Same as test_function - async by default"
+    test_suite:
+      pattern: "test.describe('{name}', () => {\n  {tests}\n})"
+      example: "test.describe('Authentication', () => {\n  test('login', ...);\n})"
+    assertion:
+      patterns:
+        - pattern: "expect({actual}).toBe({expected})"
+          example: "expect(status).toBe(200)"
+        - pattern: "expect({actual}).toEqual({expected})"
+          example: "expect(user).toEqual({ name: 'John' })"
+        - pattern: "expect({actual}).toBeTruthy()"
+          example: "expect(result.success).toBeTruthy()"
+        - pattern: "await expect({locator}).toBeVisible()"
+          example: "await expect(page.locator('.header')).toBeVisible()"
+      preferred: 0
+    import_statement:
+      pattern: "import { {imports} } from '{module}'"
+      example: "import { test, expect } from '@playwright/test'"
+    fixture_declaration:
+      pattern: "export const test = base.extend<{type}>({ {fixtures} })"
+      example: "export const test = base.extend<{ api: ApiHelper }>({ api: async ({}, use) => { await use(new ApiHelper()) } })"
+    setup_hook:
+      pattern: "test.beforeEach(async ({fixtures}) => {\n  {body}\n})"
+      example: "test.beforeEach(async ({ page }) => {\n  await page.goto('/');\n})"
+    teardown_hook:
+      pattern: "test.afterEach(async ({fixtures}) => {\n  {body}\n})"
+      example: "test.afterEach(async () => {\n  await cleanup();\n})"
+
+  test_framework:
+    detected: "playwright"
+    confidence: 0.98
+    import_pattern: "import { test, expect } from '@playwright/test'"
+    run_command: "npx playwright test"
+    config_file: "playwright.config.ts"
+    capabilities:
+      parallel_execution: true
+      fixtures: true
+      parameterized_tests: true
+      async_support: true
+      mocking_built_in: false
+      coverage_built_in: false
+
+  project_context:
+    test_directory: "tests/"
+    source_directory: "src/"
+    package_manager: "npm"
+    build_tool: null
+    existing_tests: 24
+    test_file_pattern: "*.spec.ts"
+
+  adaptation_hints:
+    function_to_pattern: "const {name} = ({params}) => { {body} }"
+    async_to_pattern: "async ({params}) => { await {body} }"
+    cleanup_strategy: "hooks"
+    composition_strategy: "merge-tests"
+    factory_strategy: "fixture"
+
+  learning_history:
+    - timestamp: "2024-01-15T10:30:00Z"
+      action: "initial_inference"
+      details: "Analyzed 5 test files and tsconfig.json"
+      affected_fields: ["all"]
+
+# =============================================================================
+# EXAMPLE PROFILE (Unknown Language - User Learned)
+# =============================================================================
+
+example_profile_unknown:
+  metadata:
+    schema_version: "1.0"
+    generated_at: "2024-01-20T14:00:00Z"
+    last_updated: "2024-01-20T14:15:00Z"
+    source: "tier-3-collaborative"
+    overall_confidence: 0.78
+
+  language:
+    inferred_name: "Gleam"
+    confidence: 0.75
+    version_detected: "0.33"
+    file_extensions: [".gleam"]
+    evidence:
+      - "gleam.toml exists"
+      - "User confirmed language name"
+
+  characteristics:
+    typing:
+      value: "static"
+      confidence: 0.90
+      evidence: "fn greet(name: String) -> String"
+    async_model:
+      value: "actors"
+      confidence: 0.70
+      evidence: "User indicated Erlang-based concurrency"
+    test_structure:
+      value: "function_based"
+      confidence: 0.85
+      evidence: "pub fn hello_world_test() { }"
+    module_system:
+      value: "gleam_import"
+      confidence: 0.80
+      evidence: "import gleam/io"
+    cleanup_idiom:
+      value: "manual"
+      confidence: 0.60
+      evidence: "No clear pattern detected"
+    error_handling:
+      value: "result_types"
+      confidence: 0.85
+      evidence: "Result(User, String)"
+    assertion_style:
+      value: "assert_function"
+      confidence: 0.80
+      evidence: "should.equal(result, expected)"
+
+  syntax_patterns:
+    test_function:
+      pattern: "pub fn {name}_test() {\n  {body}\n}"
+      example: "pub fn add_test() {\n  add(2, 3) |> should.equal(5)\n}"
+      variables:
+        name: "Test name (snake_case, without 'test' prefix)"
+        body: "Test implementation"
+    assertion:
+      patterns:
+        - pattern: "{actual} |> should.equal({expected})"
+          example: "result |> should.equal(5)"
+        - pattern: "{actual} |> should.be_true()"
+          example: "is_valid |> should.be_true()"
+      preferred: 0
+    import_statement:
+      pattern: "import {module}"
+      example: "import gleam/should"
+
+  test_framework:
+    detected: "gleeunit"
+    confidence: 0.80
+    import_pattern: "import gleam/should"
+    run_command: "gleam test"
+    config_file: "gleam.toml"
+    capabilities:
+      parallel_execution: true
+      fixtures: false
+      parameterized_tests: false
+      async_support: true
+      mocking_built_in: false
+      coverage_built_in: false
+
+  project_context:
+    test_directory: "test/"
+    source_directory: "src/"
+    package_manager: "gleam"
+    existing_tests: 3
+    test_file_pattern: "*_test.gleam"
+
+  adaptation_hints:
+    function_to_pattern: "fn {name}({params}) { {body} }"
+    async_to_pattern: "Same as sync - actor model handles concurrency"
+    cleanup_strategy: "manual"
+    composition_strategy: "manual-wiring"
+    factory_strategy: "factory-function"
+
+  learning_history:
+    - timestamp: "2024-01-20T14:00:00Z"
+      action: "initial_inference"
+      details: "Detected .gleam files, gleam.toml"
+      affected_fields: ["language", "test_framework"]
+    - timestamp: "2024-01-20T14:10:00Z"
+      action: "sample_learning"
+      details: "User provided test/hello_test.gleam sample"
+      affected_fields: ["syntax_patterns", "characteristics"]
+    - timestamp: "2024-01-20T14:15:00Z"
+      action: "user_correction"
+      details: "User confirmed async_model is actors (Erlang-based)"
+      affected_fields: ["characteristics.async_model"]
+
+# =============================================================================
+# EXAMPLE PROFILE (Python/pytest)
+# =============================================================================
+
+example_profile_python:
+  metadata:
+    schema_version: "1.0"
+    generated_at: "2025-01-15T10:30:00Z"
+    source: "tier-1-known"
+    overall_confidence: 0.94
+
+  language:
+    inferred_name: "Python"
+    confidence: 0.98
+    version_detected: "3.12"
+    file_extensions: [".py"]
+    evidence:
+      - "pyproject.toml exists"
+      - "pytest in dependencies"
+
+  characteristics:
+    typing:
+      value: "gradual"
+      confidence: 0.90
+      evidence: "def get_user(user_id: int) -> User:"
+    async_model:
+      value: "async-await"
+      confidence: 0.85
+      evidence: "async def fetch_data(): await client.get()"
+    test_structure:
+      value: "function_based"
+      confidence: 0.95
+      evidence: "def test_user_creation():"
+    module_system:
+      value: "python_import"
+      confidence: 0.99
+      evidence: "from src.models import User"
+    cleanup_idiom:
+      value: "context_manager"
+      confidence: 0.90
+      evidence: "with tempfile.NamedTemporaryFile() as f:"
+      alternatives:
+        - value: "decorator_fixture"
+          confidence: 0.85
+    error_handling:
+      value: "exceptions"
+      confidence: 0.95
+      evidence: "try: ... except ValueError as e:"
+    assertion_style:
+      value: "built_in_assert"
+      confidence: 0.92
+      evidence: "assert result == expected"
+    fixture_pattern:
+      value: "decorator_fixture"
+      confidence: 0.95
+      evidence: "@pytest.fixture"
+
+  syntax_patterns:
+    test_function:
+      pattern: "def test_{name}({fixtures}):\n    {body}"
+      example: "def test_user_creation(db_session):\n    user = User(name='John')\n    assert user.name == 'John'"
+      variables:
+        name: "Test name in snake_case"
+        fixtures: "Comma-separated fixture names"
+        body: "Test implementation (indented)"
+    async_test_function:
+      pattern: "@pytest.mark.asyncio\nasync def test_{name}({fixtures}):\n    {body}"
+      example: "@pytest.mark.asyncio\nasync def test_async_fetch(client):\n    result = await client.get('/users')"
+    test_suite:
+      pattern: "class Test{Name}:\n    {methods}"
+      example: "class TestUserAuth:\n    def test_login(self): ..."
+    assertion:
+      patterns:
+        - pattern: "assert {actual} == {expected}"
+          example: "assert user.name == 'John'"
+        - pattern: "assert {actual}"
+          example: "assert user.is_active"
+        - pattern: "assert {actual} is {expected}"
+          example: "assert result is None"
+        - pattern: "with pytest.raises({exception}):\n    {code}"
+          example: "with pytest.raises(ValueError):\n    parse_int('not a number')"
+      preferred: 0
+    import_statement:
+      pattern: "from {module} import {imports}"
+      example: "from src.models import User"
+    fixture_declaration:
+      pattern: "@pytest.fixture\ndef {name}({deps}):\n    {setup}\n    yield {value}\n    {teardown}"
+      example: "@pytest.fixture\ndef db_session():\n    session = create_session()\n    yield session\n    session.close()"
+    setup_hook:
+      pattern: "@pytest.fixture(autouse=True)\ndef {name}():\n    {body}"
+      example: "@pytest.fixture(autouse=True)\ndef setup_env():\n    os.environ['ENV'] = 'test'"
+    teardown_hook:
+      pattern: "# Yield in fixture handles teardown"
+      example: "@pytest.fixture\ndef resource():\n    r = create()\n    yield r\n    r.cleanup()"
+
+  test_framework:
+    detected: "pytest"
+    confidence: 0.98
+    import_pattern: "import pytest"
+    run_command: "pytest"
+    config_file: "pyproject.toml"
+    capabilities:
+      parallel_execution: true # with pytest-xdist
+      fixtures: true
+      parameterized_tests: true
+      async_support: true # with pytest-asyncio
+      mocking_built_in: false # uses unittest.mock
+      coverage_built_in: false # uses pytest-cov
+
+  project_context:
+    test_directory: "tests/"
+    source_directory: "src/"
+    package_manager: "poetry"
+    existing_tests: 45
+    test_file_pattern: "test_*.py"
+
+  adaptation_hints:
+    function_to_pattern: "def {name}({params}):\n    {body}"
+    async_to_pattern: "async def {name}({params}):\n    await {body}"
+    cleanup_strategy: "context-manager"
+    composition_strategy: "fixture-injection"
+    factory_strategy: "factory-function"
+
+# =============================================================================
+# EXAMPLE PROFILE (Go/testing)
+# =============================================================================
+
+example_profile_go:
+  metadata:
+    schema_version: "1.0"
+    generated_at: "2025-01-15T10:30:00Z"
+    source: "tier-1-known"
+    overall_confidence: 0.96
+
+  language:
+    inferred_name: "Go"
+    confidence: 0.99
+    version_detected: "1.21"
+    file_extensions: [".go"]
+    evidence:
+      - "go.mod exists"
+      - "*_test.go files present"
+
+  characteristics:
+    typing:
+      value: "static"
+      confidence: 0.99
+      evidence: "func GetUser(id int) (*User, error)"
+    async_model:
+      value: "goroutines"
+      confidence: 0.95
+      evidence: "go processItem(item)"
+    test_structure:
+      value: "function_based"
+      confidence: 0.98
+      evidence: "func TestUserCreation(t *testing.T)"
+      alternatives:
+        - value: "table_driven"
+          confidence: 0.85
+    module_system:
+      value: "go_package"
+      confidence: 0.99
+      evidence: "package main\nimport \"testing\""
+    cleanup_idiom:
+      value: "defer"
+      confidence: 0.95
+      evidence: "defer db.Close()"
+      alternatives:
+        - value: "hooks"
+          confidence: 0.80
+          evidence: "t.Cleanup(func() { ... })"
+    error_handling:
+      value: "error_returns"
+      confidence: 0.98
+      evidence: "if err != nil { return nil, err }"
+    assertion_style:
+      value: "assert_function"
+      confidence: 0.85
+      evidence: "assert.Equal(t, expected, actual)"
+      alternatives:
+        - value: "built_in_assert"
+          confidence: 0.80
+          evidence: "if got != want { t.Errorf(...) }"
+    fixture_pattern:
+      value: "function_hooks"
+      confidence: 0.80
+      evidence: "t.Cleanup(cleanup)"
+
+  syntax_patterns:
+    test_function:
+      pattern: "func Test{Name}(t *testing.T) {\n\t{body}\n}"
+      example: "func TestUserCreation(t *testing.T) {\n\tuser := NewUser(\"John\")\n\tassert.Equal(t, \"John\", user.Name)\n}"
+      variables:
+        Name: "Test name in PascalCase"
+        body: "Test implementation"
+    async_test_function:
+      pattern: "func Test{Name}(t *testing.T) {\n\tt.Parallel()\n\t{body}\n}"
+      example: "func TestConcurrent(t *testing.T) {\n\tt.Parallel()\n\t// test code\n}"
+    test_suite:
+      pattern: "// Tests grouped by file: {name}_test.go"
+      example: "// user_test.go contains all user-related tests"
+    assertion:
+      patterns:
+        - pattern: "assert.Equal(t, {expected}, {actual})"
+          example: "assert.Equal(t, 42, result)"
+        - pattern: "assert.NoError(t, {err})"
+          example: "assert.NoError(t, err)"
+        - pattern: "assert.True(t, {condition})"
+          example: "assert.True(t, user.IsActive)"
+        - pattern: "require.Equal(t, {expected}, {actual})"
+          example: "require.Equal(t, 42, result)"
+        - pattern: "if got != want {\n\tt.Errorf(\"got %v, want %v\", got, want)\n}"
+          example: "Standard library style"
+      preferred: 0
+    import_statement:
+      pattern: "import (\n\t\"{package}\"\n)"
+      example: "import (\n\t\"testing\"\n\t\"github.com/stretchr/testify/assert\"\n)"
+    fixture_declaration:
+      pattern: "func setup{Name}(t *testing.T) {Type} {\n\t{setup}\n\tt.Cleanup(func() { {cleanup} })\n\treturn {value}\n}"
+      example: "func setupDB(t *testing.T) *sql.DB {\n\tdb := openTestDB()\n\tt.Cleanup(func() { db.Close() })\n\treturn db\n}"
+    setup_hook:
+      pattern: "func TestMain(m *testing.M) {\n\t{setup}\n\tcode := m.Run()\n\t{teardown}\n\tos.Exit(code)\n}"
+      example: "Package-level setup/teardown"
+    teardown_hook:
+      pattern: "t.Cleanup(func() {\n\t{cleanup}\n})"
+      example: "t.Cleanup(func() { db.Close() })"
+
+  test_framework:
+    detected: "go-test"
+    confidence: 0.99
+    import_pattern: 'import "testing"'
+    run_command: "go test ./..."
+    config_file: null # Uses go.mod
+    capabilities:
+      parallel_execution: true
+      fixtures: false # Uses helper functions
+      parameterized_tests: true # Table-driven tests
+      async_support: true # t.Parallel()
+      mocking_built_in: false
+      coverage_built_in: true # -cover flag
+
+  project_context:
+    test_directory: "" # Colocated with source
+    source_directory: ""
+    package_manager: "go"
+    existing_tests: 32
+    test_file_pattern: "*_test.go"
+
+  adaptation_hints:
+    function_to_pattern: "func {name}({params}) {return_type} {\n\t{body}\n}"
+    async_to_pattern: "go func() {\n\t{body}\n}()"
+    cleanup_strategy: "defer"
+    composition_strategy: "manual-wiring"
+    factory_strategy: "factory-function"
+
+# =============================================================================
+# EXAMPLE PROFILE (Java/JUnit 5)
+# =============================================================================
+
+example_profile_java:
+  metadata:
+    schema_version: "1.0"
+    generated_at: "2025-01-15T10:30:00Z"
+    source: "tier-1-known"
+    overall_confidence: 0.93
+
+  language:
+    inferred_name: "Java"
+    confidence: 0.98
+    version_detected: "21"
+    file_extensions: [".java"]
+    evidence:
+      - "pom.xml exists"
+      - "junit-jupiter in dependencies"
+      - "package declarations in files"
+
+  characteristics:
+    typing:
+      value: "static"
+      confidence: 0.99
+      evidence: "public User getUser(Long id)"
+    async_model:
+      value: "threads"
+      confidence: 0.85
+      evidence: "CompletableFuture.supplyAsync(() -> ...)"
+      alternatives:
+        - value: "async-await"
+          confidence: 0.70
+          evidence: "Virtual threads in Java 21"
+    test_structure:
+      value: "class_based"
+      confidence: 0.95
+      evidence: "class UserTest { @Test void shouldCreate() }"
+    module_system:
+      value: "java_package"
+      confidence: 0.99
+      evidence: "package com.example.service;\nimport org.junit.jupiter.api.Test;"
+    cleanup_idiom:
+      value: "try_finally"
+      confidence: 0.85
+      evidence: "try { } finally { resource.close(); }"
+      alternatives:
+        - value: "hooks"
+          confidence: 0.90
+          evidence: "@AfterEach void tearDown()"
+    error_handling:
+      value: "exceptions"
+      confidence: 0.98
+      evidence: "try { } catch (Exception e) { throw new RuntimeException(e); }"
+    assertion_style:
+      value: "assert_method"
+      confidence: 0.95
+      evidence: "assertEquals(expected, actual)"
+    fixture_pattern:
+      value: "method_hooks"
+      confidence: 0.92
+      evidence: "@BeforeEach void setUp()"
+
+  syntax_patterns:
+    test_function:
+      pattern: "@Test\nvoid {name}() {\n    {body}\n}"
+      example: "@Test\nvoid shouldCreateUser() {\n    User user = new User(\"John\");\n    assertEquals(\"John\", user.getName());\n}"
+      variables:
+        name: "Test method name (camelCase, often starts with 'should')"
+        body: "Test implementation"
+    async_test_function:
+      pattern: "@Test\nvoid {name}() throws Exception {\n    CompletableFuture<{Type}> future = {async_call};\n    {Type} result = future.get();\n    {assertions}\n}"
+      example: "@Test\nvoid shouldFetchUserAsync() throws Exception {\n    CompletableFuture<User> future = userService.fetchAsync(1L);\n    User user = future.get();\n    assertNotNull(user);\n}"
+    test_suite:
+      pattern: "class {Name}Test {\n    {tests}\n}"
+      example: "class UserServiceTest {\n    @Test void shouldCreate() { }\n    @Test void shouldUpdate() { }\n}"
+    assertion:
+      patterns:
+        - pattern: "assertEquals({expected}, {actual})"
+          example: "assertEquals(42, result)"
+        - pattern: "assertNotNull({actual})"
+          example: "assertNotNull(user)"
+        - pattern: "assertTrue({condition})"
+          example: "assertTrue(user.isActive())"
+        - pattern: "assertThrows({Exception}.class, () -> {code})"
+          example: "assertThrows(IllegalArgumentException.class, () -> parse(null))"
+        - pattern: "assertThat({actual}).isEqualTo({expected})"
+          example: 'AssertJ style: assertThat(user.getName()).isEqualTo("John")'
+      preferred: 0
+    import_statement:
+      pattern: "import {package}.{class};"
+      example: "import org.junit.jupiter.api.Test;\nimport static org.junit.jupiter.api.Assertions.*;"
+    fixture_declaration:
+      pattern: "private {Type} {name};\n\n@BeforeEach\nvoid setUp() {\n    {name} = {initialization};\n}"
+      example: "private UserService userService;\n\n@BeforeEach\nvoid setUp() {\n    userService = new UserService(mockRepo);\n}"
+    setup_hook:
+      pattern: "@BeforeEach\nvoid setUp() {\n    {body}\n}"
+      example: "@BeforeEach\nvoid setUp() {\n    testUser = new User(\"test@example.com\");\n}"
+    teardown_hook:
+      pattern: "@AfterEach\nvoid tearDown() {\n    {body}\n}"
+      example: "@AfterEach\nvoid tearDown() {\n    database.rollback();\n}"
+
+  test_framework:
+    detected: "junit5"
+    confidence: 0.96
+    import_pattern: "import org.junit.jupiter.api.Test;\nimport static org.junit.jupiter.api.Assertions.*;"
+    run_command: "mvn test"
+    config_file: "pom.xml"
+    capabilities:
+      parallel_execution: true
+      fixtures: true # @BeforeEach, extensions
+      parameterized_tests: true # @ParameterizedTest
+      async_support: false # Manual with CompletableFuture
+      mocking_built_in: false # Uses Mockito
+      coverage_built_in: false # Uses JaCoCo
+
+  project_context:
+    test_directory: "src/test/java/"
+    source_directory: "src/main/java/"
+    package_manager: "maven"
+    build_tool: "maven"
+    existing_tests: 78
+    test_file_pattern: "*Test.java"
+
+  adaptation_hints:
+    function_to_pattern: "{returnType} {name}({params}) {\n    {body}\n}"
+    async_to_pattern: "CompletableFuture.supplyAsync(() -> {\n    {body}\n})"
+    cleanup_strategy: "hooks"
+    composition_strategy: "inheritance"
+    factory_strategy: "builder-pattern"
+
+# =============================================================================
+# EXAMPLE PROFILE (C#/NUnit)
+# =============================================================================
+
+example_profile_csharp:
+  metadata:
+    schema_version: "1.0"
+    generated_at: "2025-01-15T10:30:00Z"
+    source: "tier-1-known"
+    overall_confidence: 0.92
+
+  language:
+    inferred_name: "C#"
+    confidence: 0.97
+    version_detected: "12"
+    file_extensions: [".cs"]
+    evidence:
+      - "*.csproj exists"
+      - "NUnit package referenced"
+      - "namespace declarations"
+
+  characteristics:
+    typing:
+      value: "static"
+      confidence: 0.99
+      evidence: "public User GetUser(int id)"
+    async_model:
+      value: "async-await"
+      confidence: 0.95
+      evidence: "public async Task<User> GetUserAsync(int id)"
+    test_structure:
+      value: "class_based"
+      confidence: 0.95
+      evidence: "[TestFixture] public class UserTests"
+    module_system:
+      value: "csharp_namespace"
+      confidence: 0.99
+      evidence: "using NUnit.Framework;\nnamespace MyApp.Tests"
+    cleanup_idiom:
+      value: "context_manager"
+      confidence: 0.90
+      evidence: "using (var scope = new TransactionScope())"
+      alternatives:
+        - value: "hooks"
+          confidence: 0.88
+          evidence: "[TearDown] public void TearDown()"
+    error_handling:
+      value: "exceptions"
+      confidence: 0.98
+      evidence: "try { } catch (Exception ex) { throw; }"
+    assertion_style:
+      value: "assert_method"
+      confidence: 0.95
+      evidence: "Assert.AreEqual(expected, actual)"
+    fixture_pattern:
+      value: "method_hooks"
+      confidence: 0.92
+      evidence: "[SetUp] public void SetUp()"
+
+  syntax_patterns:
+    test_function:
+      pattern: "[Test]\npublic void {Name}()\n{\n    {body}\n}"
+      example: "[Test]\npublic void ShouldCreateUser()\n{\n    var user = new User(\"John\");\n    Assert.AreEqual(\"John\", user.Name);\n}"
+      variables:
+        Name: "Test method name (PascalCase)"
+        body: "Test implementation"
+    async_test_function:
+      pattern: "[Test]\npublic async Task {Name}()\n{\n    {body}\n}"
+      example: "[Test]\npublic async Task ShouldFetchUserAsync()\n{\n    var user = await userService.GetAsync(1);\n    Assert.IsNotNull(user);\n}"
+    test_suite:
+      pattern: "[TestFixture]\npublic class {Name}Tests\n{\n    {tests}\n}"
+      example: "[TestFixture]\npublic class UserServiceTests\n{\n    [Test] public void ShouldCreate() { }\n}"
+    assertion:
+      patterns:
+        - pattern: "Assert.AreEqual({expected}, {actual})"
+          example: "Assert.AreEqual(42, result)"
+        - pattern: "Assert.IsNotNull({actual})"
+          example: "Assert.IsNotNull(user)"
+        - pattern: "Assert.IsTrue({condition})"
+          example: "Assert.IsTrue(user.IsActive)"
+        - pattern: "Assert.Throws<{Exception}>(() => {code})"
+          example: "Assert.Throws<ArgumentException>(() => Parse(null))"
+        - pattern: "{actual}.Should().Be({expected})"
+          example: 'FluentAssertions: user.Name.Should().Be("John")'
+      preferred: 0
+    import_statement:
+      pattern: "using {namespace};"
+      example: "using NUnit.Framework;\nusing FluentAssertions;"
+    fixture_declaration:
+      pattern: "private {Type} _{name};\n\n[SetUp]\npublic void SetUp()\n{\n    _{name} = {initialization};\n}"
+      example: "private UserService _userService;\n\n[SetUp]\npublic void SetUp()\n{\n    _userService = new UserService(_mockRepo);\n}"
+    setup_hook:
+      pattern: "[SetUp]\npublic void SetUp()\n{\n    {body}\n}"
+      example: "[SetUp]\npublic void SetUp()\n{\n    _testUser = new User(\"test@example.com\");\n}"
+    teardown_hook:
+      pattern: "[TearDown]\npublic void TearDown()\n{\n    {body}\n}"
+      example: "[TearDown]\npublic void TearDown()\n{\n    _database.Rollback();\n}"
+
+  test_framework:
+    detected: "nunit"
+    confidence: 0.95
+    import_pattern: "using NUnit.Framework;"
+    run_command: "dotnet test"
+    config_file: "*.csproj"
+    capabilities:
+      parallel_execution: true
+      fixtures: true
+      parameterized_tests: true # [TestCase]
+      async_support: true
+      mocking_built_in: false # Uses Moq
+      coverage_built_in: false # Uses coverlet
+
+  project_context:
+    test_directory: "tests/"
+    source_directory: "src/"
+    package_manager: "nuget"
+    build_tool: "dotnet"
+    existing_tests: 65
+    test_file_pattern: "*Tests.cs"
+
+  adaptation_hints:
+    function_to_pattern: "{returnType} {Name}({params})\n{\n    {body}\n}"
+    async_to_pattern: "async Task<{returnType}> {Name}Async({params})\n{\n    await {body}\n}"
+    cleanup_strategy: "context-manager"
+    composition_strategy: "inheritance"
+    factory_strategy: "builder-pattern"
+
+# =============================================================================
+# EXAMPLE PROFILE (Ruby/RSpec)
+# =============================================================================
+
+example_profile_ruby:
+  metadata:
+    schema_version: "1.0"
+    generated_at: "2025-01-15T10:30:00Z"
+    source: "tier-1-known"
+    overall_confidence: 0.91
+
+  language:
+    inferred_name: "Ruby"
+    confidence: 0.96
+    version_detected: "3.2"
+    file_extensions: [".rb"]
+    evidence:
+      - "Gemfile exists"
+      - "rspec in dependencies"
+      - "spec/ directory with *_spec.rb files"
+
+  characteristics:
+    typing:
+      value: "dynamic"
+      confidence: 0.95
+      evidence: "def get_user(id)"
+      alternatives:
+        - value: "gradual"
+          confidence: 0.40
+          evidence: "With Sorbet or RBS"
+    async_model:
+      value: "threads"
+      confidence: 0.70
+      evidence: "Thread.new { }"
+      alternatives:
+        - value: "none"
+          confidence: 0.60
+    test_structure:
+      value: "bdd_style"
+      confidence: 0.98
+      evidence: "describe User do\n  it 'creates user' do"
+    module_system:
+      value: "ruby_require"
+      confidence: 0.95
+      evidence: "require 'spec_helper'\nrequire_relative '../lib/user'"
+    cleanup_idiom:
+      value: "hooks"
+      confidence: 0.92
+      evidence: "after(:each) { cleanup }"
+      alternatives:
+        - value: "context_manager"
+          confidence: 0.75
+          evidence: "File.open(path) { |f| ... }"
+    error_handling:
+      value: "exceptions"
+      confidence: 0.95
+      evidence: "begin ... rescue StandardError => e ... end"
+    assertion_style:
+      value: "expect_chain"
+      confidence: 0.95
+      evidence: "expect(user.name).to eq('John')"
+    fixture_pattern:
+      value: "function_hooks"
+      confidence: 0.90
+      evidence: "let(:user) { create(:user) }"
+
+  syntax_patterns:
+    test_function:
+      pattern: "it '{description}' do\n  {body}\nend"
+      example: "it 'creates a user' do\n  user = User.new(name: 'John')\n  expect(user.name).to eq('John')\nend"
+      variables:
+        description: "Test description (lowercase, natural language)"
+        body: "Test implementation"
+    async_test_function:
+      pattern: "it '{description}' do\n  # Ruby typically uses sync tests\n  {body}\nend"
+      example: "# Async is typically handled with threading or async gems"
+    test_suite:
+      pattern: "describe {Subject} do\n  {examples}\nend"
+      example: "describe User do\n  describe '#create' do\n    it 'creates user' do ... end\n  end\nend"
+    assertion:
+      patterns:
+        - pattern: "expect({actual}).to eq({expected})"
+          example: "expect(user.name).to eq('John')"
+        - pattern: "expect({actual}).to be_truthy"
+          example: "expect(user.active?).to be_truthy"
+        - pattern: "expect({actual}).to be_nil"
+          example: "expect(result).to be_nil"
+        - pattern: "expect { {code} }.to raise_error({Error})"
+          example: "expect { User.new(nil) }.to raise_error(ArgumentError)"
+        - pattern: "expect({actual}).to include({item})"
+          example: "expect(users).to include(john)"
+      preferred: 0
+    import_statement:
+      pattern: "require '{file}'"
+      example: "require 'spec_helper'\nrequire_relative '../lib/user'"
+    fixture_declaration:
+      pattern: "let(:{name}) { {value} }"
+      example: "let(:user) { create(:user, name: 'John') }"
+    setup_hook:
+      pattern: "before(:each) do\n  {body}\nend"
+      example: "before(:each) do\n  @database = Database.new\nend"
+    teardown_hook:
+      pattern: "after(:each) do\n  {body}\nend"
+      example: "after(:each) do\n  @database.rollback\nend"
+
+  test_framework:
+    detected: "rspec"
+    confidence: 0.97
+    import_pattern: "require 'rspec'"
+    run_command: "bundle exec rspec"
+    config_file: ".rspec"
+    capabilities:
+      parallel_execution: true # with parallel_tests
+      fixtures: true # let, let!, before
+      parameterized_tests: true # shared_examples
+      async_support: false
+      mocking_built_in: true # rspec-mocks
+      coverage_built_in: false # Uses simplecov
+
+  project_context:
+    test_directory: "spec/"
+    source_directory: "lib/"
+    package_manager: "bundler"
+    existing_tests: 120
+    test_file_pattern: "*_spec.rb"
+
+  adaptation_hints:
+    function_to_pattern: "def {name}({params})\n  {body}\nend"
+    async_to_pattern: "Thread.new { {body} }"
+    cleanup_strategy: "hooks"
+    composition_strategy: "fixture-injection"
+    factory_strategy: "factory-function"
+
+# =============================================================================
+# EXAMPLE PROFILE (Rust/cargo-test)
+# =============================================================================
+
+example_profile_rust:
+  metadata:
+    schema_version: "1.0"
+    generated_at: "2025-01-15T10:30:00Z"
+    source: "tier-1-known"
+    overall_confidence: 0.95
+
+  language:
+    inferred_name: "Rust"
+    confidence: 0.99
+    version_detected: "1.75"
+    file_extensions: [".rs"]
+    evidence:
+      - "Cargo.toml exists"
+      - "#[test] attributes in code"
+
+  characteristics:
+    typing:
+      value: "static"
+      confidence: 0.99
+      evidence: "fn get_user(id: u64) -> Result<User, Error>"
+    async_model:
+      value: "async-await"
+      confidence: 0.90
+      evidence: "async fn fetch_user() -> Result<User, Error>"
+    test_structure:
+      value: "attribute_based"
+      confidence: 0.98
+      evidence: "#[test]\nfn test_user_creation()"
+    module_system:
+      value: "rust_mod"
+      confidence: 0.99
+      evidence: "use crate::models::User;\nmod tests {"
+    cleanup_idiom:
+      value: "raii"
+      confidence: 0.95
+      evidence: "Drop trait implementation"
+    error_handling:
+      value: "result_types"
+      confidence: 0.98
+      evidence: "Result<T, E> with ? operator"
+    assertion_style:
+      value: "assert_function"
+      confidence: 0.95
+      evidence: "assert_eq!(expected, actual)"
+    fixture_pattern:
+      value: "factory_functions"
+      confidence: 0.85
+      evidence: "fn setup_test_db() -> TestDb"
+
+  syntax_patterns:
+    test_function:
+      pattern: "#[test]\nfn {name}() {\n    {body}\n}"
+      example: "#[test]\nfn test_user_creation() {\n    let user = User::new(\"John\");\n    assert_eq!(\"John\", user.name);\n}"
+      variables:
+        name: "Test function name (snake_case, often starts with 'test_')"
+        body: "Test implementation"
+    async_test_function:
+      pattern: "#[tokio::test]\nasync fn {name}() {\n    {body}\n}"
+      example: "#[tokio::test]\nasync fn test_async_fetch() {\n    let user = fetch_user(1).await.unwrap();\n    assert!(user.is_some());\n}"
+    test_suite:
+      pattern: "#[cfg(test)]\nmod tests {\n    use super::*;\n\n    {tests}\n}"
+      example: "#[cfg(test)]\nmod tests {\n    use super::*;\n\n    #[test]\n    fn test_add() { }\n}"
+    assertion:
+      patterns:
+        - pattern: "assert_eq!({expected}, {actual})"
+          example: "assert_eq!(42, result)"
+        - pattern: "assert!({condition})"
+          example: "assert!(user.is_active())"
+        - pattern: "assert_ne!({left}, {right})"
+          example: "assert_ne!(old_value, new_value)"
+        - pattern: "assert!(result.is_ok())"
+          example: 'assert!(parse("42").is_ok())'
+        - pattern: "assert!(result.is_err())"
+          example: 'assert!(parse("invalid").is_err())'
+      preferred: 0
+    import_statement:
+      pattern: "use {crate}::{item};"
+      example: "use crate::models::User;\nuse std::collections::HashMap;"
+    fixture_declaration:
+      pattern: "fn setup_{name}() -> {Type} {\n    {setup}\n}"
+      example: "fn setup_db() -> TestDb {\n    TestDb::new()\n}"
+    setup_hook:
+      pattern: "// Rust uses factory functions for setup"
+      example: "let db = setup_db();"
+    teardown_hook:
+      pattern: "// Drop trait handles cleanup automatically (RAII)"
+      example: "impl Drop for TestDb {\n    fn drop(&mut self) { self.cleanup(); }\n}"
+
+  test_framework:
+    detected: "cargo-test"
+    confidence: 0.99
+    import_pattern: "// Built-in, no import needed"
+    run_command: "cargo test"
+    config_file: "Cargo.toml"
+    capabilities:
+      parallel_execution: true
+      fixtures: false # Uses helper functions
+      parameterized_tests: false # Use macros or rstest
+      async_support: true # With tokio::test
+      mocking_built_in: false # Uses mockall
+      coverage_built_in: false # Uses cargo-tarpaulin
+
+  project_context:
+    test_directory: "tests/" # Integration tests
+    source_directory: "src/"
+    package_manager: "cargo"
+    existing_tests: 55
+    test_file_pattern: "*_test.rs"
+
+  adaptation_hints:
+    function_to_pattern: "fn {name}({params}) -> {ReturnType} {\n    {body}\n}"
+    async_to_pattern: "async fn {name}({params}) -> {ReturnType} {\n    {body}.await\n}"
+    cleanup_strategy: "raii"
+    composition_strategy: "manual-wiring"
+    factory_strategy: "factory-function"

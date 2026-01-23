@@ -15,14 +15,120 @@ Generates failing acceptance tests BEFORE implementation following TDD's red-gre
 
 ---
 
+## Phase 0: Language & Workspace Profile Loading (Language-Agnostic)
+
+**Critical:** Load language profile for language-appropriate test generation. Handle workspace context for monorepos.
+
+### Actions
+
+1. **Check for Workspace Context**
+
+   ```
+   IF exists {project-root}/_bmad/testarch/workspace-profile.yaml:
+     SET is_workspace = TRUE
+     READ workspace_profile
+
+     # ATDD typically targets a specific package
+     IF command has --package flag:
+       SET target_package = specified_package
+     ELIF current_directory is inside a package:
+       SET target_package = current_package
+     ELSE:
+       PROMPT user:
+         "Workspace detected. ATDD generates tests for a specific story.
+          Which package should receive the tests?
+
+          [List packages with their languages/frameworks]"
+
+     # Load the target package's profile
+     package_info = workspace_profile.packages[target_package]
+     READ package_info.profile_path as language_profile
+
+     # Load shared utilities for import generation
+     shared_utils = workspace_profile.shared_test_infrastructure.test_utilities
+     shared_fixtures = workspace_profile.shared_test_infrastructure.shared_fixtures
+
+   ELIF workspace_marker_exists:
+     INFORM "Workspace detected. Running language inference first..."
+     EXECUTE `*language-inference --workspace`
+     RELOAD and continue from step 1
+
+   ELSE:
+     SET is_workspace = FALSE
+   ```
+
+2. **Check for Language Profile (Single Project)**
+
+   ```
+   IF NOT is_workspace:
+     IF exists {project-root}/_bmad/testarch/language-profile.yaml:
+       READ profile
+       USE for test generation syntax
+     ELSE:
+       RUN language-inference workflow (or inline detection)
+       GENERATE language-profile.yaml
+   ```
+
+3. **Cache for Test Generation**
+
+   Load and cache:
+
+   ```yaml
+   language:
+     inferred_name: # e.g., "TypeScript", "Python", "Go"
+   characteristics:
+     test_structure: # "bdd_style", "function_based", "class_based"
+     cleanup_idiom: # "hooks", "defer", "context_manager"
+     assertion_style: # "expect_chain", "assert_function"
+   syntax_patterns:
+     test_function: # Template for test declarations
+     assertion: # Template for assertions
+   test_framework:
+     detected: # e.g., "playwright", "pytest", "go-test"
+     import_pattern: # e.g., "import { test } from '@playwright/test'"
+
+   # Workspace context (if applicable)
+   workspace_context:
+     is_workspace_package: true
+     package_name: '@myorg/web-app'
+     shared_test_utils: ['@myorg/test-utils']
+     available_fixtures: ['createMockUser', 'createMockOrder']
+   ```
+
+4. **Load Adaptation Rules**
+
+   **Knowledge Base Reference:** `testarch/knowledge/adaptation-rules.md`
+
+5. **Prepare Shared Resources (Workspace Only)**
+
+   ```
+   IF is_workspace:
+     # Register shared utilities for use in generated tests
+     FOR util IN shared_utils:
+       IF target_package uses util:
+         PREPARE import statement
+         REGISTER util.exports as available helpers
+
+     # Example generated import for TypeScript:
+     # import { createMockUser, MockApiClient } from '@myorg/test-utils';
+
+     # Check for relevant shared fixtures
+     FOR fixture IN shared_fixtures:
+       IF fixture relevant to story domain:
+         NOTE fixture for potential use in tests
+   ```
+
+---
+
 ## Preflight Requirements
 
 **Critical:** Verify these requirements before proceeding. If any fail, HALT and notify the user.
 
+- ✅ Language profile exists with confidence >= 0.5 (from Phase 0)
 - ✅ Story approved with clear acceptance criteria
 - ✅ Development sandbox/environment ready
 - ✅ Framework scaffolding exists (run `framework` workflow if missing)
-- ✅ Test framework configuration available (playwright.config.ts or cypress.config.ts)
+- ✅ Test framework configuration available (language-appropriate config file)
 
 ---
 
@@ -250,29 +356,57 @@ Generates failing acceptance tests BEFORE implementation following TDD's red-gre
 
 ---
 
-## Step 3: Generate Failing Tests
+## Step 3: Generate Failing Tests (Language-Aware)
 
 ### Actions
 
 1. **Create Test File Structure**
 
+   Use language profile for idiomatic file naming:
+
+   **JavaScript/TypeScript:**
+
    ```
    tests/
-   ├── e2e/
-   │   └── {feature-name}.spec.ts        # E2E acceptance tests
-   ├── api/
-   │   └── {feature-name}.api.spec.ts    # API contract tests
-   ├── component/
-   │   └── {ComponentName}.test.tsx      # Component tests
-   └── support/
-       ├── fixtures/                      # Test fixtures
-       ├── factories/                     # Data factories
-       └── helpers/                       # Utility functions
+   ├── e2e/{feature-name}.spec.ts
+   ├── api/{feature-name}.api.spec.ts
+   └── support/fixtures/, factories/
    ```
 
-2. **Write Failing E2E Tests (If Applicable)**
+   **Python:**
 
-   **Use Given-When-Then format:**
+   ```
+   tests/
+   ├── e2e/test_{feature_name}.py
+   ├── api/test_{feature_name}_api.py
+   ├── conftest.py
+   └── factories/
+   ```
+
+   **Go:**
+
+   ```
+   tests/
+   ├── e2e/{feature_name}_test.go
+   ├── api/{feature_name}_api_test.go
+   └── testutil/
+   ```
+
+   **Rust:**
+
+   ```
+   tests/
+   ├── e2e/{feature_name}_test.rs
+   └── common/mod.rs
+   ```
+
+2. **Write Failing E2E Tests (If Applicable) - Language-Aware**
+
+   **Use Given-When-Then format.** Generate using `language_profile.syntax_patterns.test_function`:
+
+   ***
+
+   **JavaScript/TypeScript + Playwright:**
 
    ```typescript
    import { test, expect } from '@playwright/test';
@@ -281,24 +415,62 @@ Generates failing acceptance tests BEFORE implementation following TDD's red-gre
      test('should display error for invalid credentials', async ({ page }) => {
        // GIVEN: User is on login page
        await page.goto('/login');
-
        // WHEN: User submits invalid credentials
        await page.fill('[data-testid="email-input"]', 'invalid@example.com');
        await page.fill('[data-testid="password-input"]', 'wrongpassword');
        await page.click('[data-testid="login-button"]');
-
        // THEN: Error message is displayed
        await expect(page.locator('[data-testid="error-message"]')).toHaveText('Invalid email or password');
      });
    });
    ```
 
-   **Critical patterns:**
+   ***
+
+   **Python + pytest + playwright:**
+
+   ```python
+   import pytest
+   from playwright.sync_api import Page, expect
+
+   class TestUserLogin:
+       def test_should_display_error_for_invalid_credentials(self, page: Page):
+           # GIVEN: User is on login page
+           page.goto("/login")
+           # WHEN: User submits invalid credentials
+           page.fill('[data-testid="email-input"]', "invalid@example.com")
+           page.fill('[data-testid="password-input"]', "wrongpassword")
+           page.click('[data-testid="login-button"]')
+           # THEN: Error message is displayed
+           expect(page.locator('[data-testid="error-message"]')).to_have_text("Invalid email or password")
+   ```
+
+   ***
+
+   **Go + go-test:**
+
+   ```go
+   func TestUserLogin_ShouldDisplayErrorForInvalidCredentials(t *testing.T) {
+       page := testutil.NewPage(t)
+       // GIVEN: User is on login page
+       page.Goto("/login")
+       // WHEN: User submits invalid credentials
+       page.Fill(`[data-testid="email-input"]`, "invalid@example.com")
+       page.Fill(`[data-testid="password-input"]`, "wrongpassword")
+       page.Click(`[data-testid="login-button"]`)
+       // THEN: Error message is displayed
+       testutil.ExpectText(t, page, `[data-testid="error-message"]`, "Invalid email or password")
+   }
+   ```
+
+   ***
+
+   **Critical patterns (all languages):**
    - One assertion per test (atomic tests)
    - Explicit waits (no hard waits/sleeps)
    - Network-first approach (route interception before navigation)
    - data-testid selectors for stability
-   - Clear Given-When-Then structure
+   - Clear Given-When-Then structure in comments
 
 3. **Apply Network-First Pattern**
 

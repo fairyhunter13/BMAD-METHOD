@@ -26,6 +26,14 @@ variables:
   # Directory paths
   test_dir: "{project-root}/tests" # Root test directory
   source_dir: "{project-root}/src" # Source code directory
+  language_profile_path: "{project-root}/_bmad/testarch/language-profile.yaml" # Language detection profile
+
+# Dependencies (Phase 0)
+dependencies:
+  language_inference:
+    workflow: "testarch/language-inference"
+    required: false # Will run inline if profile missing
+    output: "{language_profile_path}"
 
 # Output configuration
 default_output_file: "{output_folder}/automation-summary.md"

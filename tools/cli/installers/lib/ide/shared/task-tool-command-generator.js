@@ -65,8 +65,21 @@ class TaskToolCommandGenerator {
     const description = item.description || `Execute ${item.displayName || item.name}`;
 
     // Convert path to use {project-root} placeholder
+    // Support multiple path sources:
+    // - 'path': from manifest CSV (e.g., 'bmad/core/tasks/workflow.md')
+    // - 'relativePath': from artifact collection (e.g., 'core/tasks/workflow.md')
     let itemPath = item.path;
-    if (itemPath.startsWith('bmad/')) {
+
+    if (!itemPath && item.relativePath) {
+      // relativePath doesn't include 'bmad/' prefix, add it
+      itemPath = `_bmad/${item.relativePath}`;
+    }
+
+    // Ensure we have a valid path
+    itemPath = itemPath || `_bmad/${item.module}/tasks/${item.name}.md`;
+
+    // Add project-root prefix if path starts with bmad/ or _bmad/
+    if (itemPath.startsWith('bmad/') || itemPath.startsWith('_bmad/')) {
       itemPath = `{project-root}/${itemPath}`;
     }
 

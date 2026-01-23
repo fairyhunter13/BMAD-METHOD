@@ -1,0 +1,58 @@
+# Language Inference Workflow
+# Dynamically detects and profiles programming language characteristics
+
+name: testarch-language-inference
+description: "Infer programming language characteristics from project code for language-agnostic test generation"
+author: "BMad"
+
+# Critical variables from config
+config_source: "{project-root}/_bmad/bmm/config.yaml"
+output_folder: "{config_source}:output_folder"
+communication_language: "{config_source}:communication_language"
+date: system-generated
+
+# Workflow components
+installed_path: "{project-root}/_bmad/bmm/workflows/testarch/language-inference"
+instructions: "{installed_path}/instructions.md"
+validation: "{installed_path}/checklist.md"
+
+# Knowledge base references
+characteristics_model: "{project-root}/_bmad/bmm/testarch/language-characteristics.yaml"
+profile_schema: "{project-root}/_bmad/bmm/testarch/language-profile.schema.yaml"
+
+# Variables and inputs
+variables:
+  # Where to save the generated profile
+  profile_output: "{project-root}/_bmad/testarch/language-profile.yaml"
+
+  # Inference configuration
+  sample_limit: 5 # Max files to analyze per type
+  confidence_threshold: 0.7 # Below this, ask user for help
+
+  # Override detection (user can force specific values)
+  force_language: null # e.g., "TypeScript" - skip detection
+  force_framework: null # e.g., "playwright" - skip detection
+
+# Output configuration
+default_output_file: "{profile_output}"
+
+# Required tools
+required_tools:
+  - read_file # Read source files, configs
+  - list_files # Discover project structure
+  - search_repo # Find patterns in code
+  - write_file # Save language profile
+
+tags:
+  - qa
+  - language-detection
+  - test-architect
+  - inference
+  - language-agnostic
+
+execution_hints:
+  interactive: true # May need user input for unknown languages
+  autonomous: false # Requires confirmation for low-confidence detections
+  iterative: true
+
+web_bundle: false

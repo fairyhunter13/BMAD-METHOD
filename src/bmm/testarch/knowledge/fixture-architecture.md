@@ -13,6 +13,59 @@ Traditional Page Object Models create tight coupling through inheritance chains 
 - **Reusability**: Export fixtures via package subpaths for cross-project sharing
 - **Maintainability**: One concern per fixture = clear responsibility boundaries
 
+---
+
+## Language-Agnostic Abstract Pattern
+
+This pattern applies to ANY programming language. See `adaptation-rules.md` for language-specific translations.
+
+### Abstract: Pure Function → Fixture → Composition
+
+```pseudocode
+// STEP 1: Pure Function (explicit dependencies, no framework coupling)
+FUNCTION make_api_request(context, method, url, data, headers):
+    response = context.HTTP_CALL(method, url, data, headers)
+    IF NOT response.is_ok():
+        THROW HttpError(response.status, response.body)
+    RETURN response.parse_json()
+
+// STEP 2: Fixture Wrapper (injects framework context)
+FIXTURE api_request:
+    context = GET_FRAMEWORK_CONTEXT()
+    PROVIDE make_api_request.bind(context)
+    ON_CLEANUP:
+        // Optional cleanup
+
+// STEP 3: Composition (combine multiple fixtures)
+test_fixtures = MERGE(
+    base_fixtures,
+    api_request_fixture,
+    auth_fixture,
+    network_fixture
+)
+
+// STEP 4: Usage in tests
+TEST "user can fetch data" WITH (api_request, auth):
+    auth.login_as("user@example.com")
+    data = api_request.GET("/api/data")
+    ASSERT data.count > 0
+```
+
+### Adaptation by Language
+
+| Language              | Fixture Mechanism               | Composition                |
+| --------------------- | ------------------------------- | -------------------------- |
+| TypeScript/Playwright | `base.extend<T>({...})`         | `mergeTests()`             |
+| Python/pytest         | `@pytest.fixture` decorator     | Fixture dependencies       |
+| Go                    | Helper function + `t.Cleanup()` | Manual composition         |
+| Java/JUnit            | `@BeforeEach` + instance fields | Inheritance or composition |
+| Rust                  | Test helper functions           | Module imports             |
+| Ruby/RSpec            | `let` blocks + `before` hooks   | Shared examples            |
+
+**TEA will automatically adapt this pattern to your project's language profile.**
+
+---
+
 ## Pattern Examples
 
 ### Example 1: Pure Function → Fixture Pattern

@@ -15,12 +15,49 @@ Note: This is typically a one-time setup per repo; run it any time after the tes
 
 ---
 
+## Phase 0: Language Profile Loading (NEW - Language-Agnostic)
+
+**Purpose:** Load language profile for language-appropriate CI configuration.
+
+### Actions
+
+1. **Check for Language Profile**
+
+   ```
+   IF exists {project-root}/_bmad/testarch/language-profile.yaml:
+     READ profile
+     USE for CI template generation
+   ELSE:
+     INFER from test framework config and build files
+   ```
+
+2. **Cache for CI Generation**
+
+   ```yaml
+   language:
+     inferred_name: # e.g., "TypeScript", "Python", "Go", "Rust"
+   test_framework:
+     detected: # e.g., "playwright", "pytest", "go-test", "cargo-test"
+     run_command: # e.g., "npx playwright test", "pytest", "go test ./..."
+   project_context:
+     package_manager: # e.g., "npm", "pip", "go mod", "cargo"
+   ```
+
+   This enables language-appropriate:
+   - Runtime/SDK setup (Node, Python, Go, Rust)
+   - Dependency caching strategies
+   - Test execution commands
+   - Artifact collection patterns
+
+---
+
 ## Preflight Requirements
 
 **Critical:** Verify these requirements before proceeding. If any fail, HALT and notify the user.
 
+- ✅ Language profile exists or can be inferred (from Phase 0)
 - ✅ Git repository is initialized (`.git/` directory exists)
-- ✅ Local test suite passes (`npm run test:e2e` succeeds)
+- ✅ Local test suite passes (test command from language profile)
 - ✅ Test framework is configured (from `framework` workflow)
 - ✅ Team agrees on target CI platform (GitHub Actions, GitLab CI, Circle CI, etc.)
 - ✅ Access to CI platform settings/secrets available (if updating existing pipeline)
@@ -36,19 +73,34 @@ Note: This is typically a one-time setup per repo; run it any time after the tes
    - Confirm remote repository configured (`git remote -v`)
    - If not initialized, HALT with message: "Git repository required for CI/CD setup"
 
-2. **Validate Test Framework**
-   - Look for `playwright.config.*` or `cypress.config.*`
-   - Read framework configuration to extract:
-     - Test directory location
-     - Test command
-     - Reporter configuration
-     - Timeout settings
-   - If not found, HALT with message: "Run `framework` workflow first to set up test infrastructure"
+2. **Validate Test Framework (Language-Aware)**
 
-3. **Run Local Tests**
-   - Execute `npm run test:e2e` (or equivalent from package.json)
-   - Ensure tests pass before CI setup
-   - If tests fail, HALT with message: "Fix failing tests before setting up CI/CD"
+   Based on language profile, look for appropriate config:
+
+   **JavaScript/TypeScript:** `playwright.config.*`, `cypress.config.*`, `jest.config.*`, `vitest.config.*`
+   **Python:** `pyproject.toml[tool.pytest]`, `pytest.ini`, `conftest.py`
+   **Go:** `*_test.go` files, `go.mod`
+   **Rust:** `Cargo.toml` with test configuration, `tests/` directory
+
+   Read framework configuration to extract:
+   - Test directory location
+   - Test command (from `language_profile.test_framework.run_command`)
+   - Reporter configuration
+   - Timeout settings
+
+   If not found, HALT with message: "Run `framework` workflow first to set up test infrastructure"
+
+3. **Run Local Tests (Language-Aware)**
+
+   Execute test command from language profile:
+
+   **JavaScript/TypeScript:** `npm run test:e2e` or `npx playwright test`
+   **Python:** `pytest tests/e2e -v`
+   **Go:** `go test -v ./tests/e2e/...`
+   **Rust:** `cargo test --test e2e`
+
+   Ensure tests pass before CI setup.
+   If tests fail, HALT with message: "Fix failing tests before setting up CI/CD"
 
 4. **Detect CI Platform**
    - Check for existing CI configuration:
@@ -62,10 +114,29 @@ Note: This is typically a one-time setup per repo; run it any time after the tes
      - `gitlab.com` → GitLab CI
      - Ask user if unable to auto-detect
 
-5. **Read Environment Configuration**
+5. **Read Environment Configuration (Language-Aware)**
+
+   Based on detected language from profile:
+
+   **JavaScript/TypeScript:**
    - Use `.nvmrc` for Node version if present
-   - If missing, default to a current LTS (Node 24) or newer instead of a fixed old version
-   - Read `package.json` to identify dependencies (affects caching strategy)
+   - If missing, default to current LTS (Node 22+)
+   - Read `package.json` for dependencies (affects caching strategy)
+
+   **Python:**
+   - Check `.python-version` or `pyproject.toml[tool.poetry.python]`
+   - If missing, default to Python 3.11+
+   - Read `requirements.txt` or `pyproject.toml` for dependencies
+
+   **Go:**
+   - Check `go.mod` for Go version
+   - If missing, default to Go 1.21+
+   - Dependencies cached via go mod cache
+
+   **Rust:**
+   - Check `rust-toolchain.toml` for Rust version
+   - If missing, default to stable
+   - Dependencies cached via cargo registry
 
 **Halt Condition:** If preflight checks fail, stop immediately and report which requirement failed.
 

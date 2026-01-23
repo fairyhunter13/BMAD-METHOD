@@ -19,9 +19,17 @@ validation: "{installed_path}/checklist.md"
 # Variables and inputs
 variables:
   test_dir: "{project-root}/tests" # Root test directory
-  use_typescript: true # Prefer TypeScript configuration
-  framework_preference: "auto" # auto, playwright, cypress - user can override auto-detection
+  use_typescript: true # Prefer TypeScript configuration (legacy, use language_profile instead)
+  framework_preference: "auto" # auto, or specific framework - user can override auto-detection
   project_size: "auto" # auto, small, large - influences framework recommendation
+  language_profile_path: "{project-root}/_bmad/testarch/language-profile.yaml" # Language detection profile
+
+# Dependencies (Phase 0)
+dependencies:
+  language_inference:
+    workflow: "testarch/language-inference"
+    required: false # Will run inline if profile missing
+    output: "{language_profile_path}"
 
 # Output configuration
 default_output_file: "{test_dir}/README.md" # Main deliverable is test setup README

@@ -18,14 +18,137 @@ Expands test automation coverage by generating comprehensive test suites at appr
 
 ---
 
+## Phase 0: Language & Workspace Profile Loading (Language-Agnostic)
+
+**Critical:** Before generating tests, ensure language profile is available and workspace context is established.
+
+### Actions
+
+1. **Check for Workspace Context**
+
+   ```
+   IF exists {project-root}/_bmad/testarch/workspace-profile.yaml:
+     SET is_workspace = TRUE
+     READ workspace_profile
+
+     # Determine target package(s)
+     IF command has --package flag:
+       SET target_packages = [specified_package]
+     ELIF command has --all flag:
+       SET target_packages = workspace_profile.packages.items
+     ELIF current_directory is inside a package:
+       SET target_packages = [current_package]
+     ELSE:
+       PROMPT user:
+         "Workspace detected with {package_count} packages.
+          Which package(s) should I generate tests for?
+
+          [List packages]
+
+          Options:
+          1. Current package only
+          2. Select specific packages
+          3. All packages (--all)
+          4. Enter package name"
+
+     # Load profiles for target packages
+     FOR package IN target_packages:
+       LOAD package.profile_path as package.language_profile
+
+     # Load shared test infrastructure info
+     SET shared_test_utils = workspace_profile.shared_test_infrastructure.test_utilities
+     SET shared_fixtures = workspace_profile.shared_test_infrastructure.shared_fixtures
+
+   ELIF workspace_marker_exists:
+     INFORM "Workspace detected but not profiled. Running inference..."
+     EXECUTE `*language-inference --workspace`
+     RELOAD and continue from step 1
+
+   ELSE:
+     SET is_workspace = FALSE
+   ```
+
+2. **Check for Existing Language Profile (Single Project)**
+
+   ```
+   IF NOT is_workspace:
+     IF exists {project-root}/_bmad/testarch/language-profile.yaml:
+       READ profile
+       IF profile.overall_confidence >= 0.5:
+         USE existing profile
+         PROCEED to Preflight
+       ELSE:
+         WARN "Low confidence profile. Consider running *language-inference again."
+         USE existing profile with caution
+     ELSE:
+       RUN language-inference workflow OR inline detection
+       GENERATE language-profile.yaml
+   ```
+
+3. **Load Profile into Context**
+
+   Cache the following for use throughout the workflow:
+
+   ```yaml
+   language:
+     inferred_name: # e.g., "TypeScript", "Python", "Go"
+   characteristics:
+     typing: # "static", "gradual", "dynamic"
+     async_model: # "async-await", "promises", "goroutines"
+     test_structure: # "bdd_style", "function_based", "class_based"
+     cleanup_idiom: # "hooks", "defer", "context_manager"
+     assertion_style: # "expect_chain", "assert_function"
+   syntax_patterns:
+     test_function: # Template for generating tests
+     assertion: # Template for assertions
+   test_framework:
+     detected: # e.g., "playwright", "pytest", "go-test"
+     run_command: # e.g., "npx playwright test"
+
+   # For workspace packages
+   workspace_context: # (if applicable)
+     is_workspace_package: true
+     package_name: '@myorg/api'
+     shared_test_utils: ['@myorg/test-utils']
+     depends_on: ['@myorg/types']
+   ```
+
+4. **Load Adaptation Rules**
+
+   **Knowledge Base Reference:** `testarch/knowledge/adaptation-rules.md`
+
+   Load pattern translation rules for the detected language.
+
+5. **Prepare Shared Imports (Workspace Only)**
+
+   ```
+   IF is_workspace AND shared_test_utils:
+     # Make shared utilities available for test generation
+     FOR util IN shared_test_utils:
+       REGISTER util.exports as available helpers
+       PREPARE import_statement for util
+
+     # Example: TypeScript
+     # import { createMockUser, setupTestDb } from '@myorg/test-utils';
+
+     # Example: Python
+     # from shared.test_utils import create_mock_user, setup_test_db
+
+     # Example: Go
+     # import "myorg.com/shared/testutil"
+   ```
+
+---
+
 ## Preflight Requirements
 
 **Flexible:** This workflow can run with minimal prerequisites. Only HALT if framework is completely missing.
 
 ### Required (Always)
 
+- ✅ Language profile exists (from Phase 0)
 - ✅ Framework scaffolding configured (run `framework` workflow if missing)
-- ✅ Test framework configuration available (playwright.config.ts or cypress.config.ts)
+- ✅ Test framework configuration available (language-appropriate config file)
 
 ### Optional (BMad-Integrated Mode)
 
@@ -39,6 +162,7 @@ Expands test automation coverage by generating comprehensive test suites at appr
 - Existing tests (for gap analysis)
 
 **If framework is missing:** HALT with message: "Framework scaffolding required. Run `bmad tea *framework` first."
+**If language profile missing:** Run `*language-inference` or inline detection first.
 
 ---
 
@@ -67,9 +191,27 @@ Expands test automation coverage by generating comprehensive test suites at appr
    - Skip BMad artifact loading
    - Proceed directly to source code analysis
 
-3. **Load Framework Configuration**
-   - Read test framework config (playwright.config.ts or cypress.config.ts)
-   - Identify test directory structure from `{test_dir}`
+3. **Load Framework Configuration (Language-Aware)**
+
+   Based on language profile from Phase 0:
+
+   **JavaScript/TypeScript:**
+   - Read `playwright.config.ts`, `cypress.config.ts`, `jest.config.*`, or `vitest.config.*`
+
+   **Python:**
+   - Read `pyproject.toml[tool.pytest]`, `pytest.ini`, or `conftest.py`
+
+   **Go:**
+   - Check for existing `*_test.go` files and test conventions
+
+   **Rust:**
+   - Read `Cargo.toml` for test configuration
+
+   **Other Languages:**
+   - Use `language_profile.test_framework` to locate config
+
+   Common checks for all languages:
+   - Identify test directory structure from `{test_dir}` or language convention
    - Check existing test patterns in `{test_dir}`
    - Note test runner capabilities (parallel execution, fixtures, etc.)
 
@@ -362,118 +504,220 @@ Expands test automation coverage by generating comprehensive test suites at appr
 
 ---
 
-## Step 4: Generate Test Files
+## Step 4: Generate Test Files (Language-Aware)
 
 ### Actions
 
 1. **Create Test File Structure**
 
+   Use language profile to determine file naming and structure:
+
+   **JavaScript/TypeScript:**
+
    ```
    tests/
    ├── e2e/
-   │   └── {feature-name}.spec.ts        # E2E tests (P0-P1)
+   │   └── {feature-name}.spec.ts        # E2E tests
    ├── api/
-   │   └── {feature-name}.api.spec.ts    # API tests (P1-P2)
+   │   └── {feature-name}.api.spec.ts    # API tests
    ├── component/
-   │   └── {ComponentName}.test.tsx      # Component tests (P1-P2)
+   │   └── {ComponentName}.test.tsx      # Component tests
    ├── unit/
-   │   └── {module-name}.test.ts         # Unit tests (P2-P3)
+   │   └── {module-name}.test.ts         # Unit tests
    └── support/
        ├── fixtures/                      # Test fixtures
-       ├── factories/                     # Data factories
-       └── helpers/                       # Utility functions
+       └── factories/                     # Data factories
    ```
 
-2. **Write E2E Tests (If Applicable)**
+   **Python:**
 
-   **Follow Given-When-Then format:**
+   ```
+   tests/
+   ├── e2e/
+   │   └── test_{feature_name}.py        # E2E tests (test_ prefix)
+   ├── api/
+   │   └── test_{feature_name}_api.py    # API tests
+   ├── unit/
+   │   └── test_{module_name}.py         # Unit tests
+   ├── conftest.py                       # Shared fixtures
+   └── factories/                        # Data factories
+   ```
+
+   **Go:**
+
+   ```
+   tests/
+   ├── e2e/
+   │   └── {feature_name}_test.go        # E2E tests (_test.go suffix)
+   ├── api/
+   │   └── {feature_name}_api_test.go    # API tests
+   └── testutil/
+       ├── fixtures.go                   # Test fixtures
+       └── factories.go                  # Data factories
+   ```
+
+   **Rust:**
+
+   ```
+   tests/
+   ├── e2e/
+   │   └── {feature_name}_test.rs        # E2E tests
+   ├── common/
+   │   └── mod.rs                        # Shared test utilities
+   src/
+   └── lib.rs                            # Unit tests (#[cfg(test)])
+
+   ```
+
+2. **Write E2E Tests (If Applicable) - Language-Aware**
+
+   **Follow Given-When-Then format.** Use `language_profile.syntax_patterns.test_function` for structure.
+
+   ***
+
+   **JavaScript/TypeScript + Playwright:**
 
    ```typescript
    import { test, expect } from '@playwright/test';
 
    test.describe('User Authentication', () => {
-     test('[P0] should login with valid credentials and load dashboard', async ({ page }) => {
+     test('[P0] should login with valid credentials', async ({ page }) => {
        // GIVEN: User is on login page
        await page.goto('/login');
-
        // WHEN: User submits valid credentials
        await page.fill('[data-testid="email-input"]', 'user@example.com');
        await page.fill('[data-testid="password-input"]', 'Password123!');
        await page.click('[data-testid="login-button"]');
-
        // THEN: User is redirected to dashboard
        await expect(page).toHaveURL('/dashboard');
-       await expect(page.locator('[data-testid="user-name"]')).toBeVisible();
-     });
-
-     test('[P1] should display error for invalid credentials', async ({ page }) => {
-       // GIVEN: User is on login page
-       await page.goto('/login');
-
-       // WHEN: User submits invalid credentials
-       await page.fill('[data-testid="email-input"]', 'invalid@example.com');
-       await page.fill('[data-testid="password-input"]', 'wrongpassword');
-       await page.click('[data-testid="login-button"]');
-
-       // THEN: Error message is displayed
-       await expect(page.locator('[data-testid="error-message"]')).toHaveText('Invalid email or password');
      });
    });
    ```
 
-   **Critical patterns:**
-   - Tag tests with priority: `[P0]`, `[P1]`, `[P2]`, `[P3]` in test name
+   ***
+
+   **Python + pytest + playwright:**
+
+   ```python
+   import pytest
+   from playwright.sync_api import Page, expect
+
+   class TestUserAuthentication:
+       @pytest.mark.p0
+       def test_should_login_with_valid_credentials(self, page: Page):
+           # GIVEN: User is on login page
+           page.goto("/login")
+           # WHEN: User submits valid credentials
+           page.fill('[data-testid="email-input"]', "user@example.com")
+           page.fill('[data-testid="password-input"]', "Password123!")
+           page.click('[data-testid="login-button"]')
+           # THEN: User is redirected to dashboard
+           expect(page).to_have_url("/dashboard")
+   ```
+
+   ***
+
+   **Go + go-test + rod/chromedp:**
+
+   ```go
+   func TestUserAuthentication_ShouldLoginWithValidCredentials(t *testing.T) {
+       // GIVEN: User is on login page
+       page := testutil.NewPage(t)
+       page.Goto("/login")
+       // WHEN: User submits valid credentials
+       page.Fill(`[data-testid="email-input"]`, "user@example.com")
+       page.Fill(`[data-testid="password-input"]`, "Password123!")
+       page.Click(`[data-testid="login-button"]`)
+       // THEN: User is redirected to dashboard
+       testutil.ExpectURL(t, page, "/dashboard")
+   }
+   ```
+
+   ***
+
+   **Critical patterns (all languages):**
+   - Tag tests with priority: `[P0]`, `@pytest.mark.p0`, or naming convention
    - One assertion per test (atomic tests)
    - Explicit waits (no hard waits/sleeps)
    - Network-first approach (route interception before navigation)
    - data-testid selectors for stability
-   - Clear Given-When-Then structure
+   - Clear Given-When-Then structure in comments
 
-3. **Write API Tests (If Applicable)**
+3. **Write API Tests (If Applicable) - Language-Aware**
+
+   ***
+
+   **JavaScript/TypeScript + Playwright:**
 
    ```typescript
    import { test, expect } from '@playwright/test';
 
    test.describe('User Authentication API', () => {
-     test('[P1] POST /api/auth/login - should return token for valid credentials', async ({ request }) => {
-       // GIVEN: Valid user credentials
-       const credentials = {
-         email: 'user@example.com',
-         password: 'Password123!',
-       };
-
-       // WHEN: Logging in via API
+     test('[P1] POST /api/auth/login - should return token', async ({ request }) => {
        const response = await request.post('/api/auth/login', {
-         data: credentials,
+         data: { email: 'user@example.com', password: 'Password123!' },
        });
-
-       // THEN: Returns 200 and JWT token
        expect(response.status()).toBe(200);
        const body = await response.json();
        expect(body).toHaveProperty('token');
-       expect(body.token).toMatch(/^[A-Za-z0-9-_]+\.[A-Za-z0-9-_]+\.[A-Za-z0-9-_]+$/); // JWT format
-     });
-
-     test('[P1] POST /api/auth/login - should return 401 for invalid credentials', async ({ request }) => {
-       // GIVEN: Invalid credentials
-       const credentials = {
-         email: 'invalid@example.com',
-         password: 'wrongpassword',
-       };
-
-       // WHEN: Attempting login
-       const response = await request.post('/api/auth/login', {
-         data: credentials,
-       });
-
-       // THEN: Returns 401 with error
-       expect(response.status()).toBe(401);
-       const body = await response.json();
-       expect(body).toMatchObject({
-         error: 'Invalid credentials',
-       });
      });
    });
+   ```
+
+   ***
+
+   **Python + pytest + requests/httpx:**
+
+   ```python
+   import pytest
+   import requests
+
+   class TestUserAuthenticationAPI:
+       @pytest.mark.p1
+       def test_post_login_should_return_token(self, api_url):
+           response = requests.post(
+               f"{api_url}/auth/login",
+               json={"email": "user@example.com", "password": "Password123!"}
+           )
+           assert response.status_code == 200
+           assert "token" in response.json()
+   ```
+
+   ***
+
+   **Go + go-test + net/http:**
+
+   ```go
+   func TestUserAuthenticationAPI_PostLoginShouldReturnToken(t *testing.T) {
+       client := &http.Client{}
+       body := `{"email":"user@example.com","password":"Password123!"}`
+       resp, err := client.Post(apiURL+"/auth/login", "application/json", strings.NewReader(body))
+       require.NoError(t, err)
+       defer resp.Body.Close()
+
+       assert.Equal(t, http.StatusOK, resp.StatusCode)
+       var result map[string]interface{}
+       json.NewDecoder(resp.Body).Decode(&result)
+       assert.Contains(t, result, "token")
+   }
+   ```
+
+   ***
+
+   **Rust + cargo-test + reqwest:**
+
+   ```rust
+   #[tokio::test]
+   async fn test_post_login_should_return_token() {
+       let client = reqwest::Client::new();
+       let resp = client.post(&format!("{}/auth/login", API_URL))
+           .json(&serde_json::json!({"email": "user@example.com", "password": "Password123!"}))
+           .send().await.unwrap();
+
+       assert_eq!(resp.status(), 200);
+       let body: serde_json::Value = resp.json().await.unwrap();
+       assert!(body.get("token").is_some());
+   }
    ```
 
 4. **Write Component Tests (If Applicable)**

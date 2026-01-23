@@ -1,0 +1,57 @@
+# Learn Language Workflow
+# Collaborative learning for unknown or new programming languages
+
+name: testarch-learn-language
+description: "Learn testing patterns for unknown or new languages through collaborative user interaction"
+author: "BMad"
+
+# Critical variables from config
+config_source: "{project-root}/_bmad/bmm/config.yaml"
+output_folder: "{config_source}:output_folder"
+communication_language: "{config_source}:communication_language"
+date: system-generated
+
+# Workflow components
+installed_path: "{project-root}/_bmad/bmm/workflows/testarch/learn-language"
+instructions: "{installed_path}/instructions.md"
+validation: "{installed_path}/checklist.md"
+
+# Knowledge base references
+characteristics_model: "{project-root}/_bmad/bmm/testarch/language-characteristics.yaml"
+profile_schema: "{project-root}/_bmad/bmm/testarch/language-profile.schema.yaml"
+
+# Variables and inputs
+variables:
+  # Profile location
+  profile_output: "{project-root}/_bmad/testarch/language-profile.yaml"
+
+  # Learning mode
+  mode: "interactive" # interactive, from-sample, from-url
+
+  # Optional inputs (user can provide)
+  sample_file: null # Path to sample test file
+  language_name: null # Known language name
+  docs_url: null # Documentation URL
+
+# Output configuration
+default_output_file: "{profile_output}"
+
+# Required tools
+required_tools:
+  - read_file # Read sample files
+  - write_file # Save language profile
+  - webfetch # Fetch documentation (if URL provided)
+
+tags:
+  - qa
+  - language-learning
+  - test-architect
+  - collaborative
+  - unknown-language
+
+execution_hints:
+  interactive: true # Requires user interaction
+  autonomous: false # User must provide input
+  iterative: true # May need multiple rounds
+
+web_bundle: false

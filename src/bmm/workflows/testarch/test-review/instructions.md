@@ -23,15 +23,52 @@ This workflow performs comprehensive test quality reviews using TEA's knowledge 
 
 ---
 
+## Phase 0: Language Profile Loading (NEW - Language-Agnostic)
+
+**Purpose:** Load language profile to understand test patterns and idioms.
+
+### Actions
+
+1. **Check for Language Profile**
+
+   ```
+   IF exists {project-root}/_bmad/testarch/language-profile.yaml:
+     READ profile
+     USE for understanding test patterns
+   ELSE:
+     INFER language from test file extensions
+     APPLY generic review rules
+   ```
+
+2. **Cache Language Context**
+
+   ```yaml
+   language:
+     inferred_name: # e.g., "TypeScript", "Python", "Go"
+   characteristics:
+     test_structure: # "bdd_style", "function_based", "class_based"
+     assertion_style: # "expect_chain", "assert_function"
+   test_framework:
+     detected: # e.g., "playwright", "pytest", "go-test"
+   ```
+
+   This enables language-appropriate:
+   - Pattern detection (e.g., BDD style in pytest vs Playwright)
+   - Assertion validation
+   - Best practice checks
+
+---
+
 ## Prerequisites
 
 **Required:**
 
 - Test file(s) to review (auto-discovered or explicitly provided)
-- Test framework configuration (playwright.config.ts, jest.config.js, etc.)
+- Test framework configuration (language-appropriate config file)
 
 **Recommended:**
 
+- Language profile (`_bmad/testarch/language-profile.yaml`)
 - Story file with acceptance criteria (for context)
 - Test design document (for priority context)
 - Knowledge base fragments available in tea-index.csv
