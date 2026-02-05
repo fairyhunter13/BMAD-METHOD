@@ -3,6 +3,7 @@ const fs = require('fs-extra');
 const os = require('node:os');
 const { BaseIdeSetup } = require('./_base-ide');
 const { WorkflowCommandGenerator } = require('./shared/workflow-command-generator');
+const { ScopeCommandGenerator } = require('./shared/scope-command-generator');
 const { AgentCommandGenerator } = require('./shared/agent-command-generator');
 const { TaskToolCommandGenerator } = require('./shared/task-tool-command-generator');
 const { getTasksFromBmad } = require('./shared/bmad-artifacts');
@@ -125,7 +126,12 @@ class CodexSetup extends BaseIdeSetup {
     const ttGen = new TaskToolCommandGenerator(this.bmadFolderName);
     const tasksWritten = await ttGen.writeDashArtifacts(destDir, taskArtifacts);
 
-    const written = agentCount + workflowCount + tasksWritten;
+    // Generate scope command for parallel-safe scope management
+    const scopeGen = new ScopeCommandGenerator(this.bmadFolderName);
+    const scopeContent = await scopeGen.generateCommandContent();
+    await fs.writeFile(path.join(destDir, 'bmad-scope.md'), scopeContent);
+
+    const written = agentCount + workflowCount + tasksWritten + 1;
 
     if (!options.silent) {
       await prompts.log.success(

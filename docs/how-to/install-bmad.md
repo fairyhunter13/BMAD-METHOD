@@ -1,11 +1,11 @@
 ---
-title: "How to Install BMad"
+title: 'How to Install BMad'
 description: Step-by-step guide to installing BMad in your project
 sidebar:
   order: 1
 ---
 
-Use the `npx bmad-method install` command to set up BMad in your project with your choice of modules and AI tools.
+Use the `npx bmad-fh install` command to set up BMad in your project with your choice of modules and AI tools.
 
 If you want to use a non interactive installer and provide all install options on the command line, see [this guide](./non-interactive-installation.md).
 
@@ -16,17 +16,18 @@ If you want to use a non interactive installer and provide all install options o
 - Update the existing BMad Installation
 
 :::note[Prerequisites]
+
 - **Node.js** 20+ (required for the installer)
 - **Git** (recommended)
 - **AI tool** (Claude Code, Cursor, Windsurf, or similar)
-:::
+  :::
 
 ## Steps
 
 ### 1. Run the Installer
 
 ```bash
-npx bmad-method install
+npx bmad-fh install
 ```
 
 :::tip[Bleeding edge]
@@ -80,6 +81,7 @@ your-project/
 ## Verify Installation
 
 Run the `help` workflow (`/bmad-help` on most platforms) to verify everything works and see what to do next.
+
 
 ## Troubleshooting
 

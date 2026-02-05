@@ -2,6 +2,7 @@ const path = require('node:path');
 const { BaseIdeSetup } = require('./_base-ide');
 const chalk = require('chalk');
 const { AgentCommandGenerator } = require('./shared/agent-command-generator');
+const { ScopeCommandGenerator } = require('./shared/scope-command-generator');
 const { BMAD_FOLDER_NAME, toDashPath } = require('./shared/path-utils');
 const fs = require('fs-extra');
 const csv = require('csv-parse/sync');
@@ -242,6 +243,14 @@ You must fully embody this agent's persona and follow all activation instruction
       promptCount++;
     }
 
+    // Generate scope command for parallel-safe scope management
+    const scopeGen = new ScopeCommandGenerator(this.bmadFolderName);
+    const scopeContent = await scopeGen.generateCommandContent();
+    const scopePromptContent = this.createScopePromptContent(scopeContent);
+    const scopePath = path.join(promptsDir, 'bmad-scope.prompt.md');
+    await this.writeFile(scopePath, scopePromptContent);
+    promptCount++;
+
     return promptCount;
   }
 
@@ -397,6 +406,23 @@ tools: ${toolsStr}
 4. Display the welcome/greeting as instructed
 5. Present the numbered menu
 6. Wait for user input before proceeding
+`;
+  }
+
+  /**
+   * Create scope management prompt content
+   * @param {string} scopeContent - Scope command template content
+   * @returns {string} Prompt file content
+   */
+  createScopePromptContent(scopeContent) {
+    const toolsStr = this.getToolsForFile('bmad-scope.prompt.md');
+    return `---
+description: 'Manage scope for parallel development'
+agent: 'agent'
+tools: ${toolsStr}
+---
+
+${scopeContent}
 `;
   }
 

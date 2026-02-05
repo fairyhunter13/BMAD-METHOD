@@ -145,6 +145,12 @@ class TaskToolCommandGenerator {
     // Convert path to use {project-root} placeholder
     // Handle undefined/missing path by constructing from module and name
     let itemPath = item.path;
+
+    // Allow alternate path source (artifact collection)
+    if (!itemPath && item.relativePath) {
+      itemPath = item.relativePath;
+    }
+
     if (!itemPath || typeof itemPath !== 'string') {
       // Fallback: construct path from module and name if path is missing
       const typePlural = type === 'task' ? 'tasks' : 'tools';

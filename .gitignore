@@ -37,6 +37,10 @@ CLAUDE.local.md
 .serena/
 .claude/settings.local.json
 
+# BMAD active-scope file (shared across sessions; NOT parallel-safe)
+# Can be ignored without deleting by setting `enabled: false` (or: `npx bmad-fh scope file-disable`)
+.bmad-scope
+
 z*/
 
 _bmad
@@ -48,7 +52,6 @@ _bmad-output
 .crush
 .cursor
 .iflow
-.opencode
 .qwen
 .rovodev
 .kilocodemodes
