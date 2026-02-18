@@ -93,6 +93,11 @@ for (const [name, cmd] of Object.entries(commands)) {
     command.option(...option);
   }
 
+  // Allow commands to configure themselves (e.g., custom help)
+  if (cmd.configureCommand) {
+    cmd.configureCommand(command);
+  }
+
   // Set action
   command.action(cmd.action);
 }

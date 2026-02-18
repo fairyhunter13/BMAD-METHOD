@@ -74,6 +74,11 @@ Load and read full config from `{main_config}` and resolve:
 - `project_context` = `**/project-context.md` (load if exists)
 - ✅ YOU MUST ALWAYS SPEAK OUTPUT In your Agent communication style with the config `{communication_language}`
 
-### 2. First Step Execution
+### 2. Path Definitions
 
-Read fully and follow: `steps/step-01-understand.md` to begin the workflow.
+- `installed_path` = `{project-root}/_bmad/bmm/workflows/bmad-quick-flow/quick-spec`
+- `template_path` = `{installed_path}/tech-spec-template.md`
+
+### 3. First Step Execution
+
+Read fully and follow: `./steps/step-01-understand.md` to begin the workflow.

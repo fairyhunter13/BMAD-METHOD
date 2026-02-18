@@ -2,15 +2,13 @@ description = """{{description}}"""
 prompt = """
 Execute the BMAD '{{name}}' workflow.
 
-CRITICAL: This is a structured YAML workflow. Follow these steps precisely:
+CRITICAL: This is a structured YAML workflow that requires the workflow engine.
 
-1. LOAD the workflow definition from {project-root}/{{bmadFolderName}}/{{workflow_path}}
-2. PARSE the YAML structure to understand:
-   - Workflow phases and steps
-   - Required inputs and outputs
-   - Dependencies between steps
-3. EXECUTE each step in order
-4. VALIDATE outputs before proceeding to next step
+1. LOAD the workflow engine at {project-root}/{{bmadFolderName}}/core/tasks/workflow.xml
+2. READ its entire contents - this is the CORE OS for executing YAML workflows
+3. Pass the YAML path {project-root}/{{bmadFolderName}}/{{workflow_path}} as 'workflow-config' parameter
+4. Follow workflow.xml instructions EXACTLY as written to process the workflow config
+5. Save outputs after EACH section when generating documents from templates
 
-WORKFLOW FILE: {project-root}/{{bmadFolderName}}/{{workflow_path}}
+WORKFLOW CONFIG: {project-root}/{{bmadFolderName}}/{{workflow_path}}
 """

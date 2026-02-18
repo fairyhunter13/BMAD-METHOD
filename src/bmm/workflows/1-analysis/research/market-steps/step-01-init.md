@@ -177,6 +177,6 @@ This step ensures:
 
 ## NEXT STEP:
 
-After user confirmation and scope finalization, load `./step-02-customer-insights.md` to begin detailed market research with customer insights analysis.
+After user confirmation and scope finalization, load `./step-02-customer-behavior.md` to begin detailed market research with customer behavior analysis.
 
 Remember: Init steps confirm understanding and scope, not generate research content!

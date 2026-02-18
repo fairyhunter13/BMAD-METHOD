@@ -1,14 +1,13 @@
 description = """{{description}}"""
 prompt = """
-Execute the BMAD '{{name}}' workflow.
+Execute the BMAD '{{name}}' workflow via the workflow engine.
 
-CRITICAL: You must load and follow the workflow definition exactly.
+CRITICAL STEPS:
+1. LOAD the workflow engine from {project-root}/{{bmadFolderName}}/core/tasks/workflow.xml
+2. Pass workflow path: {project-root}/{{bmadFolderName}}/{{workflow_path}}
+3. Follow workflow.xml EXACTLY - it handles scope resolution, file type detection, and execution
+4. Save outputs after EACH section when generating documents from templates
 
-WORKFLOW INSTRUCTIONS:
-1. LOAD the workflow file from {project-root}/{{bmadFolderName}}/{{workflow_path}}
-2. READ its entire contents
-3. FOLLOW every step precisely as specified
-4. DO NOT skip or modify any steps
-
+WORKFLOW ENGINE: {project-root}/{{bmadFolderName}}/core/tasks/workflow.xml
 WORKFLOW FILE: {project-root}/{{bmadFolderName}}/{{workflow_path}}
 """

@@ -5,13 +5,12 @@ description: '{{description}}'
 
 Execute the BMAD '{{name}}' workflow.
 
-CRITICAL: You must load and follow the workflow definition exactly.
+CRITICAL: This is a structured YAML workflow that requires the workflow engine.
 
 WORKFLOW INSTRUCTIONS:
 
-1. LOAD the workflow file from {project-root}/{{bmadFolderName}}/{{path}}
-2. READ its entire contents
-3. FOLLOW every step precisely as specified
-4. DO NOT skip or modify any steps
-
-WORKFLOW FILE: {project-root}/{{bmadFolderName}}/{{path}}
+1. LOAD the workflow engine at {project-root}/{{bmadFolderName}}/core/tasks/workflow.xml
+2. READ its entire contents - this is the CORE OS for executing YAML workflows
+3. Pass the YAML path {project-root}/{{bmadFolderName}}/{{path}} as 'workflow-config' parameter
+4. Follow workflow.xml instructions EXACTLY as written to process the workflow config
+5. Save outputs after EACH section when generating documents from templates

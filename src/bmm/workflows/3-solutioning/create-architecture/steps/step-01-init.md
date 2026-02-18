@@ -57,7 +57,7 @@ If no document exists or no `stepsCompleted` in frontmatter:
 Discover and load context documents using smart discovery. Documents can be in the following locations:
 - {planning_artifacts}/**
 - {output_folder}/**
-- {product_knowledge}/**
+- {project_knowledge}/**
 - docs/**
 
 Also - when searching - documents can be a single markdown file, or a folder with an index and multiple files. For Example, if searching for `*foo*.md` and not found, also search for a folder called *foo*/index.md (which indicates sharded content)
@@ -67,7 +67,7 @@ Try to discover the following:
 - Product Requirements Document (`*prd*.md`)
 - UX Design (`*ux-design*.md`) and other
 - Research Documents (`*research*.md`)
-- Project Documentation (generally multiple documents might be found for this in the `{product_knowledge}` or `docs` folder.)
+- Project Documentation (generally multiple documents might be found for this in the `{project_knowledge}` or `docs` folder.)
 - Project Context (`**/project-context.md`)
 
 <critical>Confirm what you have found with the user, along with asking if the user wants to provide anything else. Only after this confirmation will you proceed to follow the loading rules</critical>

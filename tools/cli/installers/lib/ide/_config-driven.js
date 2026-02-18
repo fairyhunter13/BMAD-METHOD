@@ -5,6 +5,7 @@ const prompts = require('../../../lib/prompts');
 const { AgentCommandGenerator } = require('./shared/agent-command-generator');
 const { WorkflowCommandGenerator } = require('./shared/workflow-command-generator');
 const { TaskToolCommandGenerator } = require('./shared/task-tool-command-generator');
+const { ScopeCommandGenerator } = require('./shared/scope-command-generator');
 
 /**
  * Config-driven IDE setup handler
@@ -70,14 +71,14 @@ class ConfigDrivenIdeSetup extends BaseIdeSetup {
     // Skip targets with explicitly empty artifact_types array
     // This prevents creating empty directories when no artifacts will be written
     if (Array.isArray(artifact_types) && artifact_types.length === 0) {
-      return { success: true, results: { agents: 0, workflows: 0, tasks: 0, tools: 0 } };
+      return { success: true, results: { agents: 0, workflows: 0, tasks: 0, tools: 0, scope: 0 } };
     }
 
     const targetPath = path.join(projectDir, target_dir);
     await this.ensureDir(targetPath);
 
     const selectedModules = options.selectedModules || [];
-    const results = { agents: 0, workflows: 0, tasks: 0, tools: 0 };
+    const results = { agents: 0, workflows: 0, tasks: 0, tools: 0, scope: 0 };
 
     // Install agents
     if (!artifact_types || artifact_types.includes('agents')) {
@@ -102,6 +103,17 @@ class ConfigDrivenIdeSetup extends BaseIdeSetup {
       results.tools = taskToolResult.tools || 0;
     }
 
+    // Install scope command only to appropriate targets
+    // Scope is a COMMAND (not an agent), so it should go where commands go:
+    // - If no artifact_types filter: install scope (all artifacts go here)
+    // - If artifact_types includes workflows/tasks/tools: install scope (commands go here)
+    // - If artifact_types only includes agents: skip scope (agents-only target)
+    if (this.shouldInstallScopeToTarget(artifact_types)) {
+      const scopeGen = new ScopeCommandGenerator(this.bmadFolderName);
+      await scopeGen.writeScopeCommand(targetPath);
+      results.scope = 1;
+    }
+
     await this.printSummary(results, target_dir, options);
     return { success: true, results };
   }
@@ -115,7 +127,7 @@ class ConfigDrivenIdeSetup extends BaseIdeSetup {
    * @returns {Promise<Object>} Installation result
    */
   async installToMultipleTargets(projectDir, bmadDir, targets, options) {
-    const allResults = { agents: 0, workflows: 0, tasks: 0, tools: 0 };
+    const allResults = { agents: 0, workflows: 0, tasks: 0, tools: 0, scope: 0 };
 
     for (const target of targets) {
       const result = await this.installToTarget(projectDir, bmadDir, target, options);
@@ -124,10 +136,28 @@ class ConfigDrivenIdeSetup extends BaseIdeSetup {
         allResults.workflows += result.results.workflows || 0;
         allResults.tasks += result.results.tasks || 0;
         allResults.tools += result.results.tools || 0;
+        allResults.scope += result.results.scope || 0;
       }
     }
 
     return { success: true, results: allResults };
+  }
+
+  /**
+   * Determine if scope command should be installed to a target
+   * Scope is a COMMAND, so it goes where commands (workflows/tasks/tools) go.
+   * @param {Array|undefined} artifact_types - Artifact types for this target
+   * @returns {boolean} True if scope should be installed
+   */
+  shouldInstallScopeToTarget(artifact_types) {
+    // No filter means all artifacts go to this target, including scope
+    if (!artifact_types) {
+      return true;
+    }
+
+    // Check if this target handles command-type artifacts
+    const commandTypes = new Set(['workflows', 'tasks', 'tools']);
+    return artifact_types.some((type) => commandTypes.has(type));
   }
 
   /**
@@ -446,6 +476,7 @@ LOAD and execute from: {project-root}/{{bmadFolderName}}/{{path}}
     if (results.workflows > 0) parts.push(`${results.workflows} workflows`);
     if (results.tasks > 0) parts.push(`${results.tasks} tasks`);
     if (results.tools > 0) parts.push(`${results.tools} tools`);
+    if (results.scope > 0) parts.push(`${results.scope} scope command`);
     await prompts.log.success(`${this.name} configured: ${parts.join(', ')} → ${targetDir}`);
   }
 
@@ -486,7 +517,7 @@ LOAD and execute from: {project-root}/{{bmadFolderName}}/{{path}}
       return;
     }
 
-    // Remove all bmad* files
+    // Remove all bmad* files (all BMAD-generated files use bmad- prefix)
     let entries;
     try {
       entries = await fs.readdir(targetPath);

@@ -1,0 +1,107 @@
+<task id="_bmad/core/tasks/validate-workflow.xml" name="Validate Workflow Output" internal="true">
+  <objective>Validate a workflow's output against its checklist/validation schema</objective>
+
+  <description>
+    This task is invoked by workflows that have a validation step. It loads the specified
+    checklist and validates the workflow's output file against it, reporting any issues found.
+  </description>
+
+  <inputs>
+    <input name="checklist_path" required="true">Path to the validation checklist file</input>
+    <input name="output_file" required="false">Path to the output file to validate (auto-detected if not provided)</input>
+    <input name="workflow_path" required="false">Path to the workflow.yaml for variable context</input>
+  </inputs>
+
+  <flow>
+    <step n="1" title="Load Validation Context">
+      <action>Load the checklist file from the provided checklist_path</action>
+      <action>If workflow_path provided, load workflow.yaml to get variable context</action>
+      <action>Identify the output file to validate:
+        - If output_file provided explicitly, use it
+        - Else check workflow.yaml for default_output_file
+        - Else ask user to specify the file to validate
+      </action>
+      <action>Load the output file content</action>
+    </step>
+
+    <step n="2" title="Parse Checklist Requirements">
+      <action>Read the checklist thoroughly to understand ALL validation criteria</action>
+      <action>Identify:
+        - Required sections that must exist
+        - Quality criteria that must be met
+        - Anti-patterns to check for
+        - Completeness requirements
+      </action>
+      <action>Create a mental checklist of ALL items to verify</action>
+    </step>
+
+    <step n="3" title="Systematic Validation">
+      <action>Go through EACH checklist item systematically</action>
+      <action>For each requirement:
+        - Check if the output file satisfies it
+        - Note any missing, incomplete, or incorrect content
+        - Record specific line numbers or sections with issues
+      </action>
+      <action>Check for anti-patterns mentioned in the checklist</action>
+      <action>Verify completeness - no placeholder text, no TODO items left</action>
+    </step>
+
+    <step n="4" title="Generate Validation Report">
+      <action>Compile findings into a structured report</action>
+      
+      <report-format>
+## Validation Report
+
+**File Validated:** {output_file}
+**Checklist Used:** {checklist_path}
+**Validation Status:** [PASS | PASS WITH WARNINGS | FAIL]
+
+### Summary
+- Total checks: {count}
+- Passed: {passed_count}
+- Warnings: {warning_count}
+- Failed: {failed_count}
+
+### Issues Found (if any)
+
+#### Critical Issues (Must Fix)
+{list critical issues with specific locations}
+
+#### Warnings (Should Review)
+{list warnings with recommendations}
+
+### Recommendations
+{actionable recommendations for improvement}
+      </report-format>
+    </step>
+
+    <step n="5" title="Present Results and Offer Fixes">
+      <action>Display the validation report to user</action>
+      <check if="issues found">
+        <ask>Would you like me to attempt to fix these issues?
+          - [Y] Yes, fix the issues automatically
+          - [N] No, I'll fix them manually
+          - [R] Re-run validation after I make changes
+        </ask>
+        <check if="user selects Y">
+          <action>Attempt to fix each issue in the output file</action>
+          <action>Save the corrected file</action>
+          <action>Re-run validation to confirm fixes</action>
+        </check>
+      </check>
+      <check if="no issues">
+        <action>Congratulate user on passing validation</action>
+        <action>Echo: "✅ Validation PASSED - output meets all checklist requirements"</action>
+      </check>
+    </step>
+  </flow>
+
+  <protocols>
+    <protocol name="thorough_validation">
+      <rule>Never skip checklist items - validate EVERY requirement</rule>
+      <rule>Be specific about issues - include line numbers and exact problems</rule>
+      <rule>Provide actionable feedback - don't just say "incomplete", say what's missing</rule>
+      <rule>Check for placeholder text like "TODO", "TBD", "FIXME", "[INSERT]"</rule>
+    </protocol>
+  </protocols>
+</task>

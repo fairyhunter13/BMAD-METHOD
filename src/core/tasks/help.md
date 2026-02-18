@@ -18,16 +18,21 @@ description: Get unstuck by showing what workflow steps come next or answering q
 ## DISPLAY RULES
 
 ### Command-Based Workflows
+
 When `command` field has a value:
+
 - Show the command prefixed with `/` (e.g., `/bmad-bmm-create-prd`)
 
 ### Agent-Based Workflows
+
 When `command` field is empty:
+
 - User loads agent first via `/agent-command`
 - Then invokes by referencing the `code` field or describing the `name` field
 - Do NOT show a slash command — show the code value and agent load instruction instead
 
 Example presentation for empty command:
+
 ```
 Explain Concept (EC)
 Load: /tech-writer, then ask to "EC about [topic]"
@@ -45,6 +50,7 @@ Detect the active module from conversation context, recent workflows, or user qu
 ## INPUT ANALYSIS
 
 Determine what was just completed:
+
 - Explicit completion stated by user
 - Workflow completed in current conversation
 - Artifacts found matching `outputs` patterns
@@ -53,9 +59,9 @@ Determine what was just completed:
 
 ## EXECUTION
 
-1. **Load catalog** — Load `_bmad/_config/bmad-help.csv`
+1. **Load catalog** — Scan each folder under `_bmad/` (except folders starting with `_`) for `module-help.csv`. Combine all found CSV files into a single catalog.
 
-2. **Resolve output locations and config** — Scan each folder under `_bmad/` (except `_config`) for `config.yaml`. For each workflow row, resolve its `output-location` variables against that module's config so artifact paths can be searched. Also extract `communication_language` and `project_knowledge` from each scanned module's config.
+2. **Resolve output locations and config** — For each module folder scanned, also load its `config.yaml`. For each workflow row, resolve its `output-location` variables against that module's config so artifact paths can be searched. Also extract `communication_language` and `project_knowledge` from each scanned module's config.
 
 3. **Ground in project knowledge** — If `project_knowledge` resolves to an existing path, read available documentation files (architecture docs, project overview, tech stack references) for grounding context. Use discovered project facts when composing any project-specific output. Never fabricate project-specific details — if documentation is unavailable, state so.
 

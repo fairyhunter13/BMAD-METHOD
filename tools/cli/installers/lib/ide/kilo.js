@@ -5,6 +5,7 @@ const prompts = require('../../../lib/prompts');
 const { AgentCommandGenerator } = require('./shared/agent-command-generator');
 const { WorkflowCommandGenerator } = require('./shared/workflow-command-generator');
 const { TaskToolCommandGenerator } = require('./shared/task-tool-command-generator');
+const { ScopeCommandGenerator } = require('./shared/scope-command-generator');
 
 /**
  * KiloCode IDE setup handler
@@ -60,6 +61,11 @@ class KiloSetup extends BaseIdeSetup {
       config.customModes.push(modeObject);
       addedCount++;
     }
+
+    // Generate scope mode for parallel-safe scope management
+    const scopeModeObject = await this.createScopeModeObject();
+    config.customModes.push(scopeModeObject);
+    addedCount++;
 
     // Write .kilocodemodes file with proper YAML structure
     const finalContent = yaml.stringify(config, { lineWidth: 0 });
@@ -139,6 +145,24 @@ class KiloSetup extends BaseIdeSetup {
       whenToUse: whenToUse,
       customInstructions: `${activationHeader} Read the full YAML from ${relativePath} start activation to alter your state of being follow startup section instructions stay in this being until told to exit this mode\n`,
       groups: ['read', 'edit', 'browser', 'command', 'mcp'],
+    };
+  }
+
+  /**
+   * Create scope mode object for parallel-safe scope management
+   * @returns {Object} Scope mode object for YAML serialization
+   */
+  async createScopeModeObject() {
+    const scopeGen = new ScopeCommandGenerator(this.bmadFolderName);
+    const scopeContent = await scopeGen.generateCommandContent();
+
+    return {
+      slug: 'bmad-scope',
+      name: '🎯 BMAD Scope',
+      roleDefinition: 'You are a scope management assistant that helps users set and check scope for parallel-safe execution.',
+      whenToUse: 'Use when you need to set or check the active scope for parallel development',
+      customInstructions: scopeContent,
+      groups: ['read', 'edit', 'command'],
     };
   }
 

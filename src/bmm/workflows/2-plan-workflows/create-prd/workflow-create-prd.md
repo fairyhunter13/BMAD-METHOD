@@ -56,7 +56,13 @@ Load and read full config from {main_config} and resolve:
 
 ✅ YOU MUST ALWAYS SPEAK OUTPUT In your Agent communication style with the configured `{communication_language}`.
 
-### 2. Route to Create Workflow
+### 2. Path Definitions
+
+- `installed_path` = `{project-root}/_bmad/bmm/workflows/2-plan-workflows/create-prd`
+- `template_path` = `{installed_path}/templates/prd-template.md`
+- `data_path` = `{installed_path}/data`
+
+### 3. Route to Create Workflow
 
 "**Create Mode: Creating a new PRD from scratch.**"
 

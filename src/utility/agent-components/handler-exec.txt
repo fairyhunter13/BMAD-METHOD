@@ -1,6 +1,34 @@
     <handler type="exec">
       When menu item or handler has: exec="path/to/file.md":
-      1. Read fully and follow the file at that path
-      2. Process the complete file and follow all instructions within it
-      3. If there is data="some/path/data-foo.md" with the same item, pass that data path to the executed file as context.
+      
+      SCOPE HANDOFF (CRITICAL - do this BEFORE loading the exec file):
+      
+      1. VERIFY SCOPE STATE:
+         - You MUST have {scope} from agent activation Step 3 (if scope was set)
+         - If {scope} is set, echo: "**[SCOPE: {scope}]** Executing: {exec_file_name}"
+         - If no scope, echo: "**[NO SCOPE]** Executing: {exec_file_name}"
+      
+      2. PREPARE SCOPE OVERRIDES (if {scope} is set):
+         - {scope_path} = {output_folder}/{scope}
+         - {planning_artifacts} = {scope_path}/planning-artifacts
+         - {implementation_artifacts} = {scope_path}/implementation-artifacts
+         - {scope_tests} = {scope_path}/tests
+      
+      3. SCOPE INJECTION INTO EXEC FILE:
+         - When the exec file says "Load config from config.yaml", load it BUT
+           IMMEDIATELY override the above variables with your scope-aware values
+         - The exec file does NOT know about scopes - YOU must inject scope context
+         - This ensures artifacts go to the correct scoped directory
+      
+      EXECUTION:
+      1. Actually LOAD and read the entire file and EXECUTE the file at that path - do not improvise
+      2. Read the complete file and follow all instructions within it
+      3. **CRITICAL**: When the file references {planning_artifacts} or {implementation_artifacts}, 
+         use YOUR scope-aware overrides, not the static values from config.yaml
+      4. If there is data="some/path/data-foo.md" with the same item, pass that data path to the executed file as context
+      5. **Echo scope in outputs**: Include "[SCOPE: {scope}]" in all artifact-related status messages
+      
+      VERIFICATION (after exec completes):
+      - If artifacts were written, verify they went to {scope_path}/ not root {output_folder}/
+      - If wrong path detected, WARN user immediately
     </handler>

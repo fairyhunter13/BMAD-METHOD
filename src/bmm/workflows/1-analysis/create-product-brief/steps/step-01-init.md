@@ -6,8 +6,8 @@ description: 'Initialize the product brief workflow by detecting continuation st
 nextStepFile: './step-02-vision.md'
 outputFile: '{planning_artifacts}/product-brief-{{project_name}}-{{date}}.md'
 
-# Template References
-productBriefTemplate: '../product-brief.template.md'
+# Template References (uses {template_path} from workflow.md)
+productBriefTemplate: '{template_path}'
 ---
 
 # Step 1: Product Brief Initialization
@@ -85,17 +85,19 @@ If no document exists or no `stepsCompleted` in frontmatter:
 #### A. Input Document Discovery
 
 load context documents using smart discovery. Documents can be in the following locations:
-- {planning_artifacts}/**
-- {output_folder}/**
-- {product_knowledge}/**
-- docs/**
 
-Also - when searching - documents can be a single markdown file, or a folder with an index and multiple files. For Example, if searching for `*foo*.md` and not found, also search for a folder called *foo*/index.md (which indicates sharded content)
+- {planning_artifacts}/\*\*
+- {output_folder}/\*\*
+- {project_knowledge}/\*\*
+- docs/\*\*
+
+Also - when searching - documents can be a single markdown file, or a folder with an index and multiple files. For Example, if searching for `*foo*.md` and not found, also search for a folder called _foo_/index.md (which indicates sharded content)
 
 Try to discover the following:
+
 - Brainstorming Reports (`*brainstorming*.md`)
 - Research Documents (`*research*.md`)
-- Project Documentation (generally multiple documents might be found for this in the `{product_knowledge}` or `docs` folder.)
+- Project Documentation (generally multiple documents might be found for this in the `{project_knowledge}` or `docs` folder.)
 - Project Context (`**/project-context.md`)
 
 <critical>Confirm what you have found with the user, along with asking if the user wants to provide anything else. Only after this confirmation will you proceed to follow the loading rules</critical>

@@ -11,12 +11,14 @@ Thank you for considering contributing! We believe in **Human Amplification, Not
 BMad strengthens human-AI collaboration through specialized agents and guided workflows. Every contribution should answer: **"Does this make humans and AI better together?"**
 
 **✅ What we welcome:**
+
 - Enhanced collaboration patterns and workflows
 - Improved agent personas and prompts
 - Domain-specific modules leveraging BMad Core
 - Better planning and context continuity
 
 **❌ What doesn't fit:**
+
 - Purely automated solutions that sideline humans
 - Complexity that creates barriers to adoption
 - Features that fragment BMad Core's foundation
@@ -97,17 +99,21 @@ If your change exceeds 800 lines, break it into smaller PRs that can be reviewed
 
 ```markdown
 ## What
+
 [1-2 sentences describing WHAT changed]
 
 ## Why
+
 [1-2 sentences explaining WHY this change is needed]
 Fixes #[issue number]
 
 ## How
+
 - [2-3 bullets listing HOW you implemented it]
 -
 
 ## Testing
+
 [1-2 sentences on how you tested this]
 ```
 
@@ -128,9 +134,149 @@ Keep messages under 72 characters. Each commit = one logical change.
 
 ---
 
+## Git Workflow for Contributors
+
+### One-Time Setup
+
+After forking and cloning the repository, set up your development environment:
+
+```bash
+# 1. Add the upstream remote (main repository)
+git remote add upstream git@github.com:bmad-code-org/BMAD-METHOD.git
+
+# 2. Enable git hooks (enforces workflow automatically)
+git config core.hooksPath .githooks
+```
+
+### Single-Commit Workflow
+
+**This repository uses a single-commit-per-branch workflow** to keep PR history clean.
+
+#### Initial Development
+
+```bash
+# Create feature branch
+git checkout -b feat/your-feature
+
+# Make your changes
+# ... edit files ...
+
+# Commit once
+git commit -m "feat: add your feature description"
+
+# Push to your fork
+git push -u origin feat/your-feature
+```
+
+#### Making Additional Changes
+
+**Use amend instead of creating new commits:**
+
+```bash
+# Make more changes
+# ... edit files ...
+
+# Stage changes
+git add .
+
+# Amend the existing commit
+git commit --amend --no-edit
+
+# Force push (safely)
+git push --force-with-lease
+```
+
+#### Addressing PR Feedback
+
+```bash
+# Make requested changes
+# ... edit files ...
+
+# Amend (don't create new commits)
+git commit --amend --no-edit
+
+# Force push
+git push --force-with-lease
+```
+
+### Keeping Your Branch Updated
+
+```bash
+# Sync your local main with upstream
+git checkout main
+git pull upstream main
+
+# Rebase your feature branch
+git checkout feat/your-feature
+git rebase main
+
+# Force push (safely)
+git push --force-with-lease
+```
+
+### What the Git Hooks Do
+
+The hooks in `.githooks/` automate workflow enforcement:
+
+| Hook            | Purpose                                                                   |
+| --------------- | ------------------------------------------------------------------------- |
+| `pre-push`      | Ensures upstream sync, blocks direct push to main, enforces single-commit |
+| `pre-commit`    | Blocks commits to main, reminds about amend workflow                      |
+| `post-checkout` | Provides sync reminders when switching branches                           |
+
+**The hooks will automatically:**
+
+- Block commits directly to main branch
+- Prevent pushing more than 2 commits per branch
+- Warn if your local main is behind upstream
+- Remind you to rebase before pushing
+
+### Troubleshooting
+
+#### "Too many commits" error
+
+If you have multiple commits, squash them:
+
+```bash
+# Reset to main (keeps your changes)
+git reset --soft main
+
+# Create single commit
+git commit -m "feat: your feature description"
+
+# Force push
+git push --force-with-lease
+```
+
+#### Local main diverged from upstream
+
+```bash
+# Reset your main to match upstream
+git checkout main
+git reset --hard upstream/main
+git push --force-with-lease origin main
+```
+
+#### Branch not rebased on main
+
+```bash
+# Update main first
+git checkout main
+git pull upstream main
+
+# Rebase your branch
+git checkout feat/your-feature
+git rebase main
+
+# Force push
+git push --force-with-lease
+```
+
+---
+
 ## What Makes a Good PR?
 
-| ✅ Do                        | ❌ Don't                      |
+| ✅ Do                       | ❌ Don't                     |
 | --------------------------- | ---------------------------- |
 | Change one thing per PR     | Mix unrelated changes        |
 | Clear title and description | Vague or missing explanation |

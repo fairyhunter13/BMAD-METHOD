@@ -418,6 +418,9 @@ class ModuleManager {
 
     // Clone if not exists or was removed
     if (wasNewClone) {
+      // Ensure directory is clean before cloning (handles race conditions and corrupted states)
+      await fs.remove(moduleCacheDir);
+
       const fetchSpinner = await createSpinner();
       fetchSpinner.start(`Fetching ${moduleInfo.name}...`);
       try {

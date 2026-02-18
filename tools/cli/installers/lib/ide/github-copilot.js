@@ -2,6 +2,7 @@ const path = require('node:path');
 const { BaseIdeSetup } = require('./_base-ide');
 const prompts = require('../../../lib/prompts');
 const { AgentCommandGenerator } = require('./shared/agent-command-generator');
+const { ScopeCommandGenerator } = require('./shared/scope-command-generator');
 const { BMAD_FOLDER_NAME, toDashPath } = require('./shared/path-utils');
 const fs = require('fs-extra');
 const csv = require('csv-parse/sync');
@@ -236,6 +237,14 @@ You must fully embody this agent's persona and follow all activation instruction
       promptCount++;
     }
 
+    // Generate scope command for parallel-safe scope management
+    const scopeGen = new ScopeCommandGenerator(this.bmadFolderName);
+    const scopeContent = await scopeGen.generateCommandContent();
+    const scopePromptContent = this.createScopePromptContent(scopeContent);
+    const scopePath = path.join(promptsDir, 'bmad-scope.prompt.md');
+    await this.writeFile(scopePath, scopePromptContent);
+    promptCount++;
+
     return promptCount;
   }
 
@@ -252,20 +261,27 @@ You must fully embody this agent's persona and follow all activation instruction
     // bmad-help.csv exists (bmm module data), so bmm is guaranteed to be installed.
     const configLine = `1. Load {project-root}/${this.bmadFolderName}/bmm/config.yaml and store ALL fields as session variables`;
 
+    // Scope resolution block for MD/XML workflows (YAML workflows get scope from workflow.xml)
+    const scopeBlock = `2. **Resolve Scope (PARALLEL-SAFE):** Check in order: inline --scope flag → conversation memory → BMAD_SCOPE env var → .bmad-scope file (if enabled). If scope found, override: {scope_path}={output_folder}/{scope}, {planning_artifacts}={scope_path}/planning-artifacts, {implementation_artifacts}={scope_path}/implementation-artifacts. Echo "[SCOPE: {scope}]" or "[NO SCOPE]"`;
+
     let body;
     if (workflowFile.endsWith('.yaml')) {
-      // Pattern B: YAML-based workflows — use workflow engine
+      // Pattern B: YAML-based workflows — use workflow engine (scope handled by workflow.xml Step 0)
       body = `${configLine}
 2. Load the workflow engine at {project-root}/${this.bmadFolderName}/core/tasks/workflow.xml
 3. Load and execute the workflow configuration at {project-root}/${workflowFile} using the engine from step 2`;
     } else if (workflowFile.endsWith('.xml')) {
-      // Pattern A variant: XML tasks — load and execute directly
+      // Pattern A variant: XML tasks — load and execute directly (needs scope resolution)
       body = `${configLine}
-2. Load and execute the task at {project-root}/${workflowFile}`;
+${scopeBlock}
+3. Load and execute the task at {project-root}/${workflowFile}
+4. When task uses {planning_artifacts} or {implementation_artifacts}, use YOUR overridden scope values`;
     } else {
-      // Pattern A: MD workflows — load and follow directly
+      // Pattern A: MD workflows — load and follow directly (needs scope resolution)
       body = `${configLine}
-2. Load and follow the workflow at {project-root}/${workflowFile}`;
+${scopeBlock}
+3. Load and follow the workflow at {project-root}/${workflowFile}
+4. When workflow uses {planning_artifacts} or {implementation_artifacts}, use YOUR overridden scope values`;
     }
 
     return `---
@@ -391,6 +407,23 @@ tools: ${toolsStr}
 4. Display the welcome/greeting as instructed
 5. Present the numbered menu
 6. Wait for user input before proceeding
+`;
+  }
+
+  /**
+   * Create scope management prompt content
+   * @param {string} scopeContent - Scope command template content
+   * @returns {string} Prompt file content
+   */
+  createScopePromptContent(scopeContent) {
+    const toolsStr = this.getToolsForFile('bmad-scope.prompt.md');
+    return `---
+description: 'Manage scope for parallel development'
+agent: 'agent'
+tools: ${toolsStr}
+---
+
+${scopeContent}
 `;
   }
 

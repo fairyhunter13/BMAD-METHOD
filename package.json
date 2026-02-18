@@ -1,6 +1,6 @@
 {
   "$schema": "https://json.schemastore.org/package.json",
-  "name": "bmad-method",
+  "name": "bmad-fh",
   "version": "6.0.1",
   "description": "Breakthrough Method of Agile AI-driven Development",
   "keywords": [
@@ -14,14 +14,13 @@
   ],
   "repository": {
     "type": "git",
-    "url": "git+https://github.com/bmad-code-org/BMAD-METHOD.git"
+    "url": "git+https://github.com/fairyhunter13/BMAD-METHOD.git"
   },
   "license": "MIT",
   "author": "Brian (BMad) Madison",
   "main": "tools/cli/bmad-cli.js",
   "bin": {
-    "bmad": "tools/bmad-npx-wrapper.js",
-    "bmad-method": "tools/bmad-npx-wrapper.js"
+    "bmad-fh": "tools/bmad-npx-wrapper.js"
   },
   "scripts": {
     "bmad:install": "node tools/cli/bmad-cli.js install",

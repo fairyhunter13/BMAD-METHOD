@@ -17,8 +17,105 @@
   </WORKFLOW-RULES>
 
   <flow>
+    <step n="0" title="Initialize Scope Context (PARALLEL-SAFE)" critical="true">
+      <objective>Resolve and load scope context before workflow execution using parallel-safe detection</objective>
+      
+      <substep n="0a" title="Check for Scope Requirement">
+        <action>Scan workflow.yaml for {scope} variable in any path or variable</action>
+        <action>If found, mark workflow as scope-required</action>
+        <note>Scope-required workflows need an active scope to resolve paths correctly</note>
+      </substep>
+      
+      <substep n="0b" title="Resolve Scope (PARALLEL-SAFE PRIORITY ORDER)" critical="true">
+        <priority-order desc="Check these sources IN ORDER - first match wins">
+          <source n="1" parallel-safe="true">
+            <name>Inline --scope argument</name>
+            <desc>Check if command invocation includes scope parameter</desc>
+            <formats>
+              - /workflow-name --scope auth
+              - /workflow-name --scope=auth
+              - /workflow-name auth (positional, last arg matching scope pattern)
+            </formats>
+            <scope-pattern>alphanumeric with hyphens: auth, payment-v2, feature-123</scope-pattern>
+            <action>If found, store as {scope} and echo: "**[SCOPE: {scope}]** Using inline scope"</action>
+          </source>
+          <source n="2" parallel-safe="true">
+            <name>Conversation memory</name>
+            <desc>Check if scope was set earlier in THIS conversation</desc>
+            <action>If remembered from earlier in conversation, use it</action>
+            <action>Echo: "**[SCOPE: {scope}]** Using scope from conversation context"</action>
+          </source>
+          <source n="3" parallel-safe="true">
+            <name>BMAD_SCOPE environment variable</name>
+            <desc>Check for BMAD_SCOPE env var (set per terminal)</desc>
+            <action>If BMAD_SCOPE is set, use its value as scope</action>
+            <action>Echo: "**[SCOPE: {scope}]** Using scope from BMAD_SCOPE env var"</action>
+          </source>
+          <source n="4" parallel-safe="false">
+            <name>Session context file (.bmad-scope)</name>
+            <desc>Check for .bmad-scope file in project root (ignored when disabled)</desc>
+            <warning>This file is shared across ALL sessions - NOT parallel-safe!</warning>
+            <action>If exists, parse YAML and check enabled/disabled status</action>
+            <action>If enabled: false OR disabled: true → IGNORE this file (treat as not found)</action>
+            <action>Legacy files without enabled/disabled keys are treated as enabled</action>
+            <action>If enabled AND active_scope is present → use active_scope value</action>
+            <action>If active_scope was used, echo: "**[SCOPE: {scope}]** Using scope from .bmad-scope (shared file - not parallel-safe)"</action>
+          </source>
+          <source n="5" parallel-safe="true">
+            <name>Prompt user</name>
+            <desc>Only if scope-required and none found from above sources</desc>
+            <ask>This workflow requires a scope. Select existing scope or create new one.</ask>
+          </source>
+        </priority-order>
+        <action>Store resolved scope as {scope} variable for path resolution</action>
+        <action>REMEMBER {scope} for rest of this conversation - do NOT re-read .bmad-scope later</action>
+      </substep>
+      
+      <substep n="0c" title="Load Scope Context">
+        <check if="scope is set">
+          <action>Check for scope registry: {project-root}/_bmad/_config/scopes.yaml</action>
+          <action>If missing, echo warning: "**[SCOPE ERROR]** Scope system not initialized (missing scopes.yaml). Run: npx bmad-fh scope init"</action>
+          <action>If missing, CLEAR {scope} and continue without scope (or prompt user if workflow is scope-required)</action>
+          <action>Load scope configuration from {project-root}/_bmad/_config/scopes.yaml</action>
+          <action>Validate scope exists and is active</action>
+          <action>Resolve scope paths (THESE OVERRIDE config.yaml values!):
+            - {scope_path} = {output_folder}/{scope}
+            - {scope_planning} = {scope_path}/planning-artifacts
+            - {scope_implementation} = {scope_path}/implementation-artifacts
+            - {scope_tests} = {scope_path}/tests
+            - {planning_artifacts} = {scope_planning}  (OVERRIDE!)
+            - {implementation_artifacts} = {scope_implementation}  (OVERRIDE!)
+          </action>
+          <action>Load global project context: {output_folder}/_shared/project-context.md</action>
+          <action>Load scope project context if exists: {scope_path}/project-context.md</action>
+          <action>Merge contexts: scope extends global</action>
+          <action>Check for pending dependency updates and notify user if any</action>
+        </check>
+        <check if="no scope (scope-optional workflow)">
+          <action>Continue without scope context, use legacy paths from config.yaml</action>
+          <action>Echo: "**[NO SCOPE]** Running without scope isolation"</action>
+        </check>
+      </substep>
+      
+      <substep n="0d" title="Scope Echo Requirement">
+        <mandate>Include "[SCOPE: {scope}]" or "[NO SCOPE]" in ALL status messages throughout workflow</mandate>
+        <mandate>Before writing ANY artifact, echo the full target path including scope</mandate>
+        <example>**[SCOPE: auth]** Writing PRD to: _bmad-output/auth/planning-artifacts/prd.md</example>
+      </substep>
+    </step>
+
     <step n="1" title="Load and Initialize Workflow">
-      <substep n="1a" title="Load Configuration and Resolve Variables">
+      <substep n="0" title="Detect Workflow Type">
+        <action>Check the workflow file extension from the provided path</action>
+        <check if="path ends with .yaml or .yml">
+          <action>Mark as YAML-WORKFLOW → proceed to substep 1a</action>
+        </check>
+        <check if="path ends with .md">
+          <action>Mark as MD-WORKFLOW → skip to substep 1d</action>
+        </check>
+      </substep>
+      
+      <substep n="1a" title="Load Configuration and Resolve Variables" if="YAML-WORKFLOW">
         <action>Read workflow.yaml from provided path</action>
         <mandate>Load config_source (REQUIRED for all modules)</mandate>
         <phase n="1">Load external config from config_source path</phase>
@@ -35,11 +132,25 @@
         <note>Data files (csv, json) → Store paths only, load on-demand when instructions reference them</note>
       </substep>
 
-      <substep n="1c" title="Initialize Output" if="template-workflow">
+      <substep n="1c" title="Initialize Output" if="template-workflow AND YAML-WORKFLOW">
         <action>Resolve default_output_file path with all variables and {{date}}</action>
         <action>Create output directory if doesn't exist</action>
         <action>If template-workflow → Write template to output file with placeholders</action>
         <action>If action-workflow → Skip file creation</action>
+      </substep>
+      
+      <substep n="1d" title="Load Markdown Workflow" if="MD-WORKFLOW">
+        <action>Read the COMPLETE workflow.md file from provided path</action>
+        <action>Parse frontmatter (YAML between --- markers) for metadata</action>
+        <action>Extract the INITIALIZATION section if present</action>
+        <check if="INITIALIZATION section exists">
+          <action>Load config from config path specified in INITIALIZATION</action>
+          <action>Resolve all variables from config</action>
+          <action>Apply scope path overrides from Step 0 (these take precedence!)</action>
+        </check>
+        <action>The workflow.md content after frontmatter becomes the instructions</action>
+        <action>Continue to Step 2 to execute the markdown instructions</action>
+        <note>MD workflows are self-contained instruction documents - follow them directly</note>
       </substep>
     </step>
 
@@ -135,6 +246,45 @@
   </supported-tags>
 
   <protocols desc="Reusable workflow protocols that can be invoked via invoke-protocol tag">
+    <protocol name="verify_scope" desc="Verify scope context is still active and correct">
+      <objective>Ensure scope context hasn't been lost between workflow steps</objective>
+      
+      <flow>
+        <step n="1" title="Check Scope State">
+          <check if="scope was set in Step 0">
+            <action>Verify {scope} variable is still available</action>
+            <action>Verify {scope_path}, {planning_artifacts}, {implementation_artifacts} are set</action>
+            <check if="any scope variable is missing or empty">
+              <action>HALT workflow immediately</action>
+              <action>Display error: "SCOPE CONTEXT LOST! Scope was set to '{scope}' but variables are missing."</action>
+              <action>Ask user to restart workflow with explicit scope: /workflow-name --scope {scope}</action>
+            </check>
+          </check>
+        </step>
+        
+        <step n="2" title="Echo Current Scope">
+          <action>Display: "**[SCOPE: {scope}]** Scope verified - continuing workflow..."</action>
+          <note>This provides visibility that scope is still active</note>
+        </step>
+      </flow>
+    </protocol>
+    
+    <protocol name="scope_write_check" desc="Verify artifact write path matches active scope">
+      <objective>Prevent artifacts from being written to wrong scope directory</objective>
+      
+      <flow>
+        <step n="1" title="Validate Write Path">
+          <action>Before writing any artifact, check the target path</action>
+          <check if="scope is set AND target path does NOT start with {scope_path}">
+            <action>HALT immediately</action>
+            <action>Display error: "SCOPE VIOLATION! Attempting to write to '{target_path}' but active scope is '{scope}'"</action>
+            <action>Display expected path: "Expected path should start with: {scope_path}/"</action>
+            <ask>Continue anyway? (This may corrupt other scopes) [y/N]</ask>
+          </check>
+        </step>
+      </flow>
+    </protocol>
+    
     <protocol name="discover_inputs" desc="Smart file discovery and loading based on input_file_patterns">
       <objective>Intelligently load project files (whole or sharded) based on workflow's input_file_patterns configuration</objective>
 

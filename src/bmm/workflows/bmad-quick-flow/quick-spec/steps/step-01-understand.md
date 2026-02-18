@@ -4,8 +4,10 @@ description: 'Analyze the requirement delta between current state and what user 
 
 nextStepFile: './step-02-investigate.md'
 skipToStepFile: './step-03-generate.md'
-templateFile: '../tech-spec-template.md'
 wipFile: '{implementation_artifacts}/tech-spec-wip.md'
+
+# Template Reference (uses {template_path} from workflow.md)
+templateFile: '{template_path}'
 ---
 
 # Step 1: Analyze Requirement Delta
@@ -99,6 +101,7 @@ d) **Build mental model:**
 a) **Now ask clarifying questions - but make them INFORMED by what you found:**
 
 Instead of generic questions like "What's the scope?", ask specific ones like:
+
 - "`AuthService` handles validation in the controller — should the new field follow that pattern or move it to a dedicated validator?"
 - "`NavigationSidebar` component uses local state for the 'collapsed' toggle — should we stick with that or move it to the global store?"
 - "The epics doc mentions X - is this related?"

@@ -38,7 +38,8 @@ Load config from `{project-root}/_bmad/bmm/config.yaml` and resolve:
 
 - `installed_path` = `{project-root}/_bmad/bmm/workflows/generate-project-context`
 - `template_path` = `{installed_path}/project-context-template.md`
-- `output_file` = `{output_folder}/project-context.md`
+- `scope_path` = `{output_folder}/{scope}` (if scope active) or `{output_folder}` (if no scope)
+- `output_file` = `{scope_path}/project-context.md`
 
 ---
 
