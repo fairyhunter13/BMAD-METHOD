@@ -60,6 +60,23 @@ async function handleCancel(value, message = 'Operation cancelled') {
 }
 
 /**
+ * Check if a value represents a user cancellation (Ctrl+C / Escape)
+ * Synchronous — safe to use in if-guards without await.
+ * @param {any} value - The value to check
+ * @returns {boolean} True if the value is a cancel symbol
+ */
+function isCancel(value) {
+  // clack.isCancel is a synchronous Symbol.for check, so we can
+  // access it from the cached module without awaiting getClack().
+  try {
+    const clack = require('@clack/prompts');
+    return clack.isCancel(value);
+  } catch {
+    return false;
+  }
+}
+
+/**
  * Display intro message
  * @param {string} message - The intro message
  */
@@ -684,6 +701,7 @@ module.exports = {
   getClack,
   getColor,
   handleCancel,
+  isCancel,
   intro,
   outro,
   cancel,

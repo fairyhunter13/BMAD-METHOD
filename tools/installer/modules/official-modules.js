@@ -1110,10 +1110,10 @@ class OfficialModules {
       return item && typeof item === 'object' && item.prompt && !existingKeys.includes(key);
     });
 
-    // Find new static fields (without prompt, just result)
+    // Find new static fields (without prompt, just result) — exclude runtime-flagged variables
     const newStaticKeys = configKeys.filter((key) => {
       const item = moduleConfig[key];
-      return item && typeof item === 'object' && !item.prompt && item.result && !existingKeys.includes(key);
+      return item && typeof item === 'object' && !item.prompt && item.result && !item.runtime && !existingKeys.includes(key);
     });
 
     // If in silent mode and no new keys (neither interactive nor static), use existing config and skip prompts
@@ -1384,6 +1384,11 @@ class OfficialModules {
         continue;
       }
 
+      // Skip runtime-only variables — resolved at runtime by agents, not at install time
+      if (item.runtime === true) {
+        continue;
+      }
+
       // Handle static values (no prompt, just result)
       if (!item.prompt && item.result) {
         // Add to static answers with a marker value
@@ -1594,6 +1599,10 @@ class OfficialModules {
         for (const key of Object.keys(moduleConfig)) {
           if (key !== 'prompt' && moduleConfig[key] && typeof moduleConfig[key] === 'object') {
             const item = moduleConfig[key];
+            // Skip runtime-only variables — resolved at runtime by agents, not at install time
+            if (item.runtime === true) {
+              continue;
+            }
             // For static items (no prompt, just result), apply the result
             if (!item.prompt && item.result) {
               // Apply any placeholder replacements to the result

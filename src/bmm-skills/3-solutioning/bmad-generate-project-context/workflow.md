@@ -30,7 +30,8 @@ This uses **micro-file architecture** for disciplined execution:
 - ✅ YOU MUST ALWAYS SPEAK OUTPUT In your Agent communication style with the config `{communication_language}`
 - ✅ YOU MUST ALWAYS WRITE all artifact and document content in `{document_output_language}`
 
-- `output_file` = `{output_folder}/project-context.md`
+- `scope_path` = `{output_folder}/{scope}` (if scope active) or `{output_folder}` (if no scope)
+- `output_file` = `{scope_path}/project-context.md`
 
     EXECUTION
 

@@ -29,17 +29,32 @@ When you are in this persona and the user calls a skill, this persona must carry
 
 ## Capabilities
 
-| Code | Description | Skill |
-|------|-------------|-------|
-| BP | Expert guided brainstorming facilitation | bmad-brainstorming |
-| MR | Market analysis, competitive landscape, customer needs and trends | bmad-market-research |
-| DR | Industry domain deep dive, subject matter expertise and terminology | bmad-domain-research |
-| TR | Technical feasibility, architecture options and implementation approaches | bmad-technical-research |
-| CB | Create or update product briefs through guided or autonomous discovery | bmad-product-brief-preview |
-| WB | Working Backwards PRFAQ challenge — forge and stress-test product concepts | bmad-prfaq |
-| DP | Analyze an existing project to produce documentation for human and LLM consumption | bmad-document-project |
+| Code | Description                                                                        | Skill                      |
+| ---- | ---------------------------------------------------------------------------------- | -------------------------- |
+| BP   | Expert guided brainstorming facilitation                                           | bmad-brainstorming         |
+| MR   | Market analysis, competitive landscape, customer needs and trends                  | bmad-market-research       |
+| DR   | Industry domain deep dive, subject matter expertise and terminology                | bmad-domain-research       |
+| TR   | Technical feasibility, architecture options and implementation approaches          | bmad-technical-research    |
+| CB   | Create or update product briefs through guided or autonomous discovery             | bmad-product-brief-preview |
+| WB   | Working Backwards PRFAQ challenge — forge and stress-test product concepts         | bmad-prfaq                 |
+| DP   | Analyze an existing project to produce documentation for human and LLM consumption | bmad-document-project      |
 
 ## On Activation
+
+0. **Resolve active scope** (MANDATORY, before loading config.yaml):
+   Check in priority order:
+   a. Inline/conversation scope — if the user invoked a command with `--scope <id>` or set it via `/bmad-scope <id>` in this conversation, use that
+   b. `BMAD_SCOPE` environment variable — if set, use that
+   c. `.bmad-scope` file at project root — parse YAML; if `enabled: true` (and not `disabled: true`), use its `active_scope` field
+   d. If none of the above, no scope is active (use default paths)
+
+   If a scope IS active, override these path variables (DO NOT use config.yaml's values for these):
+   - `{scope_path}` = `{output_folder}/{scope}`
+   - `{planning_artifacts}` = `{scope_path}/planning-artifacts`
+   - `{implementation_artifacts}` = `{scope_path}/implementation-artifacts`
+   - `{scope_tests}` = `{scope_path}/tests`
+
+   **CRITICAL**: `config.yaml` contains static pre-resolved paths from install time. When a scope is active, you MUST use the overridden values above, not config.yaml's values, for any of these variables.
 
 1. Load config from `{project-root}/_bmad/bmm/config.yaml` and resolve:
    - Use `{user_name}` for greeting
@@ -51,7 +66,6 @@ When you are in this persona and the user calls a skill, this persona must carry
 2. **Continue with steps below:**
    - **Load project context** — Search for `**/project-context.md`. If found, load as foundational reference for project standards and conventions. If not found, continue without it.
    - **Greet and present capabilities** — Greet `{user_name}` warmly by name, always speaking in `{communication_language}` and applying your persona throughout the session.
-   
 3. Remind the user they can invoke the `bmad-help` skill at any time for advice and then present the capabilities table from the Capabilities section above.
 
    **STOP and WAIT for user input** — Do NOT execute menu items automatically. Accept number, menu code, or fuzzy command match.

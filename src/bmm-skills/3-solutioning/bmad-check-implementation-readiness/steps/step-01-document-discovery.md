@@ -1,5 +1,8 @@
 ---
 outputFile: '{planning_artifacts}/implementation-readiness-report-{{date}}.md'
+
+# Template Reference (uses {template_path} from workflow.md)
+templateFile: '{template_path}'
 ---
 
 # Step 1: Document Discovery

@@ -1,3 +1,20 @@
+---
+name: 'step-02-discovery'
+description: 'Discover project type, domain, and context through collaborative dialogue'
+
+# File References
+nextStepFile: './step-02b-vision.md'
+outputFile: '{planning_artifacts}/prd.md'
+
+# Data Files (uses {data_path} from workflow.md)
+projectTypesCSV: '{data_path}/project-types.csv'
+domainComplexityCSV: '{data_path}/domain-complexity.csv'
+
+# Task References
+advancedElicitationTask: '{project-root}/_bmad/core/workflows/advanced-elicitation/workflow.xml'
+partyModeWorkflow: '{project-root}/_bmad/core/workflows/party-mode/workflow.md'
+---
+
 # Step 2: Project Discovery
 
 **Progress: Step 2 of 13** - Next: Product Vision
@@ -50,6 +67,7 @@ Discover and classify the project - understand what type of product this is, wha
 ## YOUR TASK:
 
 Discover and classify the project through natural conversation:
+
 - What type of product is this? (web app, API, mobile, etc.)
 - What domain does it operate in? (healthcare, fintech, e-commerce, etc.)
 - What's the project context? (greenfield new product vs brownfield existing system)
@@ -60,6 +78,7 @@ Discover and classify the project through natural conversation:
 ### 1. Check Document State
 
 Read the frontmatter from `{outputFile}` to get document counts:
+
 - `briefCount` - Product briefs available
 - `researchCount` - Research documents available
 - `brainstormingCount` - Brainstorming docs available
@@ -68,6 +87,7 @@ Read the frontmatter from `{outputFile}` to get document counts:
 **Announce your understanding:**
 
 "From step 1, I have loaded:
+
 - Product briefs: {{briefCount}}
 - Research: {{researchCount}}
 - Brainstorming: {{brainstormingCount}}
@@ -83,6 +103,7 @@ Read the frontmatter from `{outputFile}` to get document counts:
 "Your task: Lookup data in ../data/project-types.csv
 
 **Search criteria:**
+
 - Find row where project_type matches {{detectedProjectType}}
 
 **Return format:**
@@ -95,6 +116,7 @@ project_type, detection_signals
 "Your task: Lookup data in ../data/domain-complexity.csv
 
 **Search criteria:**
+
 - Find row where domain matches {{detectedDomain}}
 
 **Return format:**
@@ -104,6 +126,7 @@ domain, complexity, typical_concerns, compliance_requirements
 **Do NOT return the entire CSV - only the matching row.**"
 
 **Graceful degradation (if Task tool unavailable):**
+
 - Load the CSV files directly
 - Find the matching rows manually
 - Extract required fields
@@ -116,6 +139,7 @@ domain, complexity, typical_concerns, compliance_requirements
 If the user has a product brief or project docs, acknowledge them and share your understanding. Then ask clarifying questions to deepen your understanding.
 
 If this is a greenfield project with no docs, start with open-ended discovery:
+
 - What problem does this solve?
 - Who's it for?
 - What excites you about building this?
@@ -123,6 +147,7 @@ If this is a greenfield project with no docs, start with open-ended discovery:
 **Listen for classification signals:**
 
 As the user describes their product, match against:
+
 - **Project type signals** (API, mobile, SaaS, etc.)
 - **Domain signals** (healthcare, fintech, education, etc.)
 - **Complexity indicators** (regulated industries, novel technology, etc.)
@@ -132,6 +157,7 @@ As the user describes their product, match against:
 Once you have enough understanding, share your classification:
 
 "I'm hearing this as:
+
 - **Project Type:** {{detectedType}}
 - **Domain:** {{detectedDomain}}
 - **Complexity:** {{complexityLevel}}
@@ -143,12 +169,13 @@ Let the user confirm or refine your classification.
 ### 5. Save Classification to Frontmatter
 
 When user selects 'C', update frontmatter with classification:
+
 ```yaml
 classification:
-  projectType: {{projectType}}
-  domain: {{domain}}
-  complexity: {{complexityLevel}}
-  projectContext: {{greenfield|brownfield}}
+  projectType: { { projectType } }
+  domain: { { domain } }
+  complexity: { { complexityLevel } }
+  projectContext: { { greenfield|brownfield } }
 ```
 
 ### N. Present MENU OPTIONS
@@ -175,6 +202,7 @@ Display: "**Select:** [A] Advanced Elicitation [P] Party Mode [C] Continue to Pr
 - IF Any other: help user respond, then redisplay menu
 
 #### EXECUTION RULES:
+
 - ALWAYS halt and wait for user input after presenting menu
 - ONLY proceed to next step when user selects 'C'
 - After other menu items execution, return to this menu

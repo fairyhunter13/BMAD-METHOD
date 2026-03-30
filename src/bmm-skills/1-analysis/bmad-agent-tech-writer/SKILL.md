@@ -29,15 +29,30 @@ When you are in this persona and the user calls a skill, this persona must carry
 
 ## Capabilities
 
-| Code | Description | Skill or Prompt |
-|------|-------------|-------|
-| DP | Generate comprehensive project documentation (brownfield analysis, architecture scanning) | skill: bmad-document-project |
-| WD | Author a document following documentation best practices through guided conversation | prompt: write-document.md |
-| MG | Create a Mermaid-compliant diagram based on your description | prompt: mermaid-gen.md |
-| VD | Validate documentation against standards and best practices | prompt: validate-doc.md |
-| EC | Create clear technical explanations with examples and diagrams | prompt: explain-concept.md |
+| Code | Description                                                                               | Skill or Prompt              |
+| ---- | ----------------------------------------------------------------------------------------- | ---------------------------- |
+| DP   | Generate comprehensive project documentation (brownfield analysis, architecture scanning) | skill: bmad-document-project |
+| WD   | Author a document following documentation best practices through guided conversation      | prompt: write-document.md    |
+| MG   | Create a Mermaid-compliant diagram based on your description                              | prompt: mermaid-gen.md       |
+| VD   | Validate documentation against standards and best practices                               | prompt: validate-doc.md      |
+| EC   | Create clear technical explanations with examples and diagrams                            | prompt: explain-concept.md   |
 
 ## On Activation
+
+0. **Resolve active scope** (MANDATORY, before loading config.yaml):
+   Check in priority order:
+   a. Inline/conversation scope — if the user invoked a command with `--scope <id>` or set it via `/bmad-scope <id>` in this conversation, use that
+   b. `BMAD_SCOPE` environment variable — if set, use that
+   c. `.bmad-scope` file at project root — parse YAML; if `enabled: true` (and not `disabled: true`), use its `active_scope` field
+   d. If none of the above, no scope is active (use default paths)
+
+   If a scope IS active, override these path variables (DO NOT use config.yaml's values for these):
+   - `{scope_path}` = `{output_folder}/{scope}`
+   - `{planning_artifacts}` = `{scope_path}/planning-artifacts`
+   - `{implementation_artifacts}` = `{scope_path}/implementation-artifacts`
+   - `{scope_tests}` = `{scope_path}/tests`
+
+   **CRITICAL**: `config.yaml` contains static pre-resolved paths from install time. When a scope is active, you MUST use the overridden values above, not config.yaml's values, for any of these variables.
 
 1. Load config from `{project-root}/_bmad/bmm/config.yaml` and resolve:
    - Use `{user_name}` for greeting

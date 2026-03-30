@@ -5,7 +5,7 @@ sidebar:
   order: 1
 ---
 
-Use the `npx bmad-method install` command to set up BMad in your project with your choice of modules and AI tools.
+Use the `npx bmad-fh install` command to set up BMad in your project with your choice of modules and AI tools.
 
 If you want to use a non interactive installer and provide all install options on the command line, see [this guide](./non-interactive-installation.md).
 
@@ -19,22 +19,22 @@ If you want to use a non interactive installer and provide all install options o
 
 - **Node.js** 20+ (required for the installer)
 - **Git** (recommended)
-- **AI tool** (Claude Code, Cursor, or similar)
-  :::
+- **AI tool** (Claude Code, Cursor, Windsurf, or similar)
+:::
 
 ## Steps
 
 ### 1. Run the Installer
 
 ```bash
-npx bmad-method install
+npx bmad-fh install
 ```
 
 :::tip[Want the newest prerelease build?]
 Use the `next` dist-tag:
 
 ```bash
-npx bmad-method@next install
+npx bmad-fh@next install
 ```
 
 This gets you newer changes earlier, with a higher chance of churn than the default install.

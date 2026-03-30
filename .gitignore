@@ -45,6 +45,10 @@ CLAUDE.local.md
 .junie/
 .agents/
 
+# BMAD active-scope file (shared across sessions; NOT parallel-safe)
+# Can be ignored without deleting by setting `enabled: false` (or: `npx bmad-fh scope file-disable`)
+.bmad-scope
+
 z*/
 !docs/zh-cn/
 
@@ -58,7 +62,6 @@ _bmad-output
 .crush
 .cursor
 .iflow
-.opencode
 .qwen
 .rovodev
 .kilocodemodes
@@ -78,3 +81,10 @@ _bmad-output
 website/.astro/
 website/dist/
 build/
+
+# Claude Code plugin runtime state
+.claude/tool-calls.jsonl
+.claude/failures.json
+.claude/failure-patterns.json
+.claude/failure-context.json
+.claude/escalation.json

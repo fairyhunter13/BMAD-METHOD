@@ -10,3 +10,6 @@ _bmad*/
 
 # IDE integration folders (user-specific, not in repo)
 .junie/
+
+# OpenCode local tooling
+.opencode/**

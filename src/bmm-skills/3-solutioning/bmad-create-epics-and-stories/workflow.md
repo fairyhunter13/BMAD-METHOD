@@ -45,7 +45,12 @@ This uses **step-file architecture** for disciplined execution:
    - Use `{document_output_language}` for output documents
    - Use `{planning_artifacts}` for output location and artifact scanning
    - Use `{project_knowledge}` for additional context scanning
- 
-2. First Step EXECUTION
+
+2. Path Definitions
+
+- `installed_path` = `{project-root}/_bmad/bmm/workflows/3-solutioning/create-epics-and-stories`
+- `template_path` = `{installed_path}`
+
+3. First Step EXECUTION
 
 Read fully and follow: `./steps/step-01-validate-prerequisites.md` to begin the workflow.

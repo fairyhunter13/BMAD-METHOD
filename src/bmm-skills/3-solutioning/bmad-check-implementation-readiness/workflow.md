@@ -42,6 +42,11 @@
    - Use `{planning_artifacts}` for output location and artifact scanning
    - Use `{project_knowledge}` for additional context scanning
 
-2. First Step EXECUTION
+2. Path Definitions
+
+- `installed_path` = `{project-root}/_bmad/bmm/workflows/3-solutioning/check-implementation-readiness`
+- `template_path` = `{installed_path}/templates/readiness-report-template.md`
+
+3. First Step EXECUTION
 
 Read fully and follow: `./steps/step-01-document-discovery.md` to begin the workflow.

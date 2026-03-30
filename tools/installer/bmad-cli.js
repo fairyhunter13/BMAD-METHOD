@@ -1,5 +1,3 @@
-#!/usr/bin/env node
-
 const { program } = require('commander');
 const path = require('node:path');
 const fs = require('node:fs');
@@ -93,6 +91,11 @@ for (const [name, cmd] of Object.entries(commands)) {
   // Add options
   for (const option of cmd.options || []) {
     command.option(...option);
+  }
+
+  // Allow commands to configure themselves (e.g., custom help)
+  if (cmd.configureCommand) {
+    cmd.configureCommand(command);
   }
 
   // Set action
